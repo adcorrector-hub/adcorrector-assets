@@ -1204,52 +1204,28 @@ function acComputeAvgScore(scores, mode) {
 }
 
 function acApplyModeButtonUI(mode) {
-  var isDirect = (mode === 'direct');
-
-  // Tilda can duplicate blocks; handle multiple matches safely
   var directBtns = document.querySelectorAll('#ac-modeDirect');
   var brandBtns  = document.querySelectorAll('#ac-modeBrand');
 
-  function setBtnState(btn, on) {
+  var isDirect = (mode === 'direct');
+
+  function setState(btn, active) {
     if (!btn) return;
 
-    // apply state to button AND common wrappers
-    var targets = [btn];
+    btn.classList.remove('ac-mode-active');
 
-    try {
-      if (btn.closest) {
-        var p1 = btn.closest('.t-btn');
-        var p2 = btn.closest('.t-btnwrap');
-        var p3 = btn.closest('.t396__elem');
-        if (p1) targets.push(p1);
-        if (p2) targets.push(p2);
-        if (p3) targets.push(p3);
-      }
-    } catch (e) {}
-
-    var ACTIVE_CLASSES = ['active', 't-active', 't-btn_active', 'is-active', 'selected'];
-
-    for (var t = 0; t < targets.length; t++) {
-      var el = targets[t];
-      if (!el || !el.classList) continue;
-
-      for (var k = 0; k < ACTIVE_CLASSES.length; k++) {
-        el.classList.remove(ACTIVE_CLASSES[k]);
-      }
-
-      el.setAttribute('aria-pressed', on ? 'true' : 'false');
-      el.setAttribute('data-ac-active', on ? '1' : '0');
-
-      if (on) {
-        for (var kk = 0; kk < ACTIVE_CLASSES.length; kk++) {
-          el.classList.add(ACTIVE_CLASSES[kk]);
-        }
-      }
+    if (active) {
+      btn.classList.add('ac-mode-active');
     }
   }
 
-  for (var i = 0; i < directBtns.length; i++) setBtnState(directBtns[i], isDirect);
-  for (var j = 0; j < brandBtns.length; j++)  setBtnState(brandBtns[j], !isDirect);
+  for (var i = 0; i < directBtns.length; i++) {
+    setState(directBtns[i], isDirect);
+  }
+
+  for (var j = 0; j < brandBtns.length; j++) {
+    setState(brandBtns[j], !isDirect);
+  }
 }
 
 function acRecomputeFromLastRun() {
