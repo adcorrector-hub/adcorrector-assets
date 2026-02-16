@@ -1210,48 +1210,97 @@ function acApplyModeButtonUI(mode) {
   var directBtns = document.querySelectorAll('#ac-modeDirect');
   var brandBtns  = document.querySelectorAll('#ac-modeBrand');
 
-  // Some Tilda button styles use different "active" class names.
-  // We remove/add a small set to make the visual state deterministic.
-  var ACTIVE_CLASSES = ['active', 't-active', 't-btn_active', 'is-active', 'selected'];
-
   function setBtnState(btn, on) {
-  if (!btn) return;
+    if (!btn) return;
 
-  // apply state to the button AND common wrappers (Tilda often styles the wrapper)
-  var targets = [btn];
+    // apply state to button AND common wrappers
+    var targets = [btn];
 
-  // add a few likely parents (safe even if null)
-  try {
-    if (btn.closest) {
-      var p1 = btn.closest('.t-btn');
-      var p2 = btn.closest('.t-btnwrap');
-      var p3 = btn.closest('.t396__elem'); // common in Tilda Zero Block
-      if (p1) targets.push(p1);
-      if (p2) targets.push(p2);
-      if (p3) targets.push(p3);
-    }
-  } catch (e) {}
+    try {
+      if (btn.closest) {
+        var p1 = btn.closest('.t-btn');
+        var p2 = btn.closest('.t-btnwrap');
+        var p3 = btn.closest('.t396__elem');
+        if (p1) targets.push(p1);
+        if (p2) targets.push(p2);
+        if (p3) targets.push(p3);
+      }
+    } catch (e) {}
 
-  var ACTIVE_CLASSES = ['active', 't-active', 't-btn_active', 'is-active', 'selected'];
+    var ACTIVE_CLASSES = ['active', 't-active', 't-btn_active', 'is-active', 'selected'];
 
-  for (var t = 0; t < targets.length; t++) {
-    var el = targets[t];
-    if (!el || !el.classList) continue;
+    for (var t = 0; t < targets.length; t++) {
+      var el = targets[t];
+      if (!el || !el.classList) continue;
 
-    for (var k = 0; k < ACTIVE_CLASSES.length; k++) {
-      el.classList.remove(ACTIVE_CLASSES[k]);
-    }
+      for (var k = 0; k < ACTIVE_CLASSES.length; k++) {
+        el.classList.remove(ACTIVE_CLASSES[k]);
+      }
 
-    el.setAttribute('aria-pressed', on ? 'true' : 'false');
-    el.setAttribute('data-ac-active', on ? '1' : '0');
+      el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      el.setAttribute('data-ac-active', on ? '1' : '0');
 
-    if (on) {
-      el.classList.add('active', 't-active', 't-btn_active', 'is-active', 'selected');
+      if (on) {
+        for (var kk = 0; kk < ACTIVE_CLASSES.length; kk++) {
+          el.classList.add(ACTIVE_CLASSES[kk]);
+        }
+      }
     }
   }
-}  
 
-// Run now if DOM is already ready, otherwise wait
+  for (var i = 0; i < directBtns.length; i++) setBtnState(directBtns[i], isDirect);
+  for (var j = 0; j < brandBtns.length; j++)  setBtnState(brandBtns[j], !isDirect);
+}
+
+function acRecomputeFromLastRun() {
+  if (!window.acLastScores || !window.acLastAnalysisData || !window.acLastDetails) return;
+
+  var scores = window.acLastScores;
+
+  var avgScore = acComputeAvgScore({
+    readability: scores.readability,
+    contrast: scores.contrast,
+    clarity: scores.clarity,
+    colors: scores.colors,
+    composition: scores.composition,
+    cta: scores.cta
+  }, window.acScoringMode);
+
+  var gradeObj = calculateGrade(avgScore);
+
+  // update details for downstream logic
+  window.acLastDetails.avgScore = avgScore;
+  window.acLastDetails.grade = gradeObj.full;
+  window.acLastDetails.scoringMode = window.acScoringMode;
+
+  displayGrade(gradeObj, avgScore, window.acLastAnalysisData, window.acLastDetails);
+  displayMetrics(window.acLastAnalysisData);
+  displayInsights(window.acLastAnalysisData, window.acLastDetails);
+}
+
+function acBindModeButtons() {
+  var directBtns = document.querySelectorAll('#ac-modeDirect');
+  var brandBtns  = document.querySelectorAll('#ac-modeBrand');
+
+  function bind(btn, mode) {
+    if (!btn) return;
+    btn.onclick = function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      window.acScoringMode = mode;
+      acApplyModeButtonUI(mode);
+      acRecomputeFromLastRun();
+    };
+  }
+
+  for (var i = 0; i < directBtns.length; i++) bind(directBtns[i], 'direct');
+  for (var j = 0; j < brandBtns.length; j++)  bind(brandBtns[j], 'brand');
+
+  // Set UI on load
+  acApplyModeButtonUI(window.acScoringMode || 'direct');
+}
+
+// Bind when DOM is ready (without crashing the whole app)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', acBindModeButtons);
 } else {
