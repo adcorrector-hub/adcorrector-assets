@@ -1204,17 +1204,32 @@ function acComputeAvgScore(scores, mode) {
 }
 
 function acApplyModeButtonUI(mode) {
-  var btnD = document.getElementById('ac-modeDirect');
-  var btnB = document.getElementById('ac-modeBrand');
-  if (!btnD || !btnB) return;
-
-  // Uses your CSS convention: "active"
   var isDirect = (mode === 'direct');
-btnD.classList.toggle('active', isDirect);
-btnB.classList.toggle('active', !isDirect);
 
-btnD.setAttribute('aria-pressed', isDirect ? 'true' : 'false');
-btnB.setAttribute('aria-pressed', !isDirect ? 'true' : 'false');
+  // Tilda can occasionally duplicate blocks; handle multiple matches safely
+  var directBtns = document.querySelectorAll('#ac-modeDirect');
+  var brandBtns  = document.querySelectorAll('#ac-modeBrand');
+
+  for (var i = 0; i < directBtns.length; i++) {
+    directBtns[i].classList.remove('active');
+    directBtns[i].setAttribute('aria-pressed', 'false');
+  }
+  for (var j = 0; j < brandBtns.length; j++) {
+    brandBtns[j].classList.remove('active');
+    brandBtns[j].setAttribute('aria-pressed', 'false');
+  }
+
+  if (isDirect) {
+    for (var d = 0; d < directBtns.length; d++) {
+      directBtns[d].classList.add('active');
+      directBtns[d].setAttribute('aria-pressed', 'true');
+    }
+  } else {
+    for (var b = 0; b < brandBtns.length; b++) {
+      brandBtns[b].classList.add('active');
+      brandBtns[b].setAttribute('aria-pressed', 'true');
+    }
+  }
 }
 
 function acRecomputeFromLast(mode) {
@@ -1223,7 +1238,6 @@ function acRecomputeFromLast(mode) {
   var avgScore = acComputeAvgScore(window.acLastScores, mode);
   var gradeObj = calculateGrade(avgScore);
 
-  // Update stored details + pass scoringMode through everywhere
   var details = window.acLastDetails || {};
   details.avgScore = avgScore;
   details.grade = gradeObj.full;
@@ -1232,6 +1246,7 @@ function acRecomputeFromLast(mode) {
   window.acLastDetails = details;
 
   displayGrade(gradeObj, avgScore, window.acLastAnalysisData, details);
+  displayMetrics(window.acLastAnalysisData);   // ✅ THIS was missing
   displayInsights(window.acLastAnalysisData, details);
 }
 
@@ -1243,26 +1258,27 @@ function acSetScoringMode(mode) {
   acRecomputeFromLast(mode);
 }
 
-// Robust binding for Tilda (scripts may run after DOMContentLoaded)
 function acBindModeButtons() {
-  var btnD = document.getElementById('ac-modeDirect');
-  var btnB = document.getElementById('ac-modeBrand');
+  var directBtns = document.querySelectorAll('#ac-modeDirect');
+  var brandBtns  = document.querySelectorAll('#ac-modeBrand');
 
-  if (!btnD || !btnB) return;
+  if (!directBtns.length || !brandBtns.length) return;
 
-  // Apply current state immediately
   acApplyModeButtonUI(window.acScoringMode);
 
-  // Ensure clean bindings (avoid stacking)
-  btnD.onclick = function (e) {
-    if (e) e.preventDefault();
-    acSetScoringMode('direct');
-  };
+  for (var i = 0; i < directBtns.length; i++) {
+    directBtns[i].onclick = function (e) {
+      if (e) e.preventDefault();
+      acSetScoringMode('direct');
+    };
+  }
 
-  btnB.onclick = function (e) {
-    if (e) e.preventDefault();
-    acSetScoringMode('brand');
-  };
+  for (var j = 0; j < brandBtns.length; j++) {
+    brandBtns[j].onclick = function (e) {
+      if (e) e.preventDefault();
+      acSetScoringMode('brand');
+    };
+  }
 }
 
 // Run now if DOM is already ready, otherwise wait
@@ -1859,14 +1875,20 @@ if (mode !== 'brand') {
     return 'Weak. This will likely fail at distance and motion.';
   }
 
-  var metrics = [
-    { label: 'Readability', value: data.readability, unit: '%' },
-    { label: 'Contrast', value: data.contrast, unit: '%' },
-    { label: 'Clarity', value: data.clarity, unit: '%' },
-    { label: 'Colors', value: data.colors, unit: '%' },
-    { label: 'Composition', value: data.composition, unit: '%' },
-    { label: 'CTA', value: data.cta, unit: '%' }
-  ];
+  var mode = (window.acScoringMode || 'direct');
+
+var metrics = [
+  { label: 'Readability', value: data.readability, unit: '%' },
+  { label: 'Contrast', value: data.contrast, unit: '%' },
+  { label: 'Clarity', value: data.clarity, unit: '%' },
+  { label: 'Colors', value: data.colors, unit: '%' },
+  { label: 'Composition', value: data.composition, unit: '%' }
+];
+
+// ✅ Brand Awareness excludes CTA from scoring view
+if (mode !== 'brand') {
+  metrics.push({ label: 'CTA', value: data.cta, unit: '%' });
+}
 
   var html = '';
   for (var i = 0; i < metrics.length; i++) {
