@@ -1206,29 +1206,41 @@ function acComputeAvgScore(scores, mode) {
 function acApplyModeButtonUI(mode) {
   var isDirect = (mode === 'direct');
 
-  // Tilda can occasionally duplicate blocks; handle multiple matches safely
+  // Tilda can duplicate blocks; handle multiple matches safely
   var directBtns = document.querySelectorAll('#ac-modeDirect');
   var brandBtns  = document.querySelectorAll('#ac-modeBrand');
 
-  for (var i = 0; i < directBtns.length; i++) {
-    directBtns[i].classList.remove('active');
-    directBtns[i].setAttribute('aria-pressed', 'false');
-  }
-  for (var j = 0; j < brandBtns.length; j++) {
-    brandBtns[j].classList.remove('active');
-    brandBtns[j].setAttribute('aria-pressed', 'false');
+  // Some Tilda button styles use different "active" class names.
+  // We remove/add a small set to make the visual state deterministic.
+  var ACTIVE_CLASSES = ['active', 't-active', 't-btn_active', 'is-active', 'selected'];
+
+  function setBtnState(btn, on) {
+    if (!btn || !btn.classList) return;
+
+    for (var k = 0; k < ACTIVE_CLASSES.length; k++) {
+      btn.classList.remove(ACTIVE_CLASSES[k]);
+    }
+
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.setAttribute('data-ac-active', on ? '1' : '0');
+
+    if (on) {
+      // Add multiple common "active" classes so whichever CSS exists will hit
+      btn.classList.add('active');
+      btn.classList.add('t-active');
+      btn.classList.add('t-btn_active');
+      btn.classList.add('is-active');
+      btn.classList.add('selected');
+    }
   }
 
+  for (var i = 0; i < directBtns.length; i++) setBtnState(directBtns[i], false);
+  for (var j = 0; j < brandBtns.length; j++)  setBtnState(brandBtns[j], false);
+
   if (isDirect) {
-    for (var d = 0; d < directBtns.length; d++) {
-      directBtns[d].classList.add('active');
-      directBtns[d].setAttribute('aria-pressed', 'true');
-    }
+    for (var d = 0; d < directBtns.length; d++) setBtnState(directBtns[d], true);
   } else {
-    for (var b = 0; b < brandBtns.length; b++) {
-      brandBtns[b].classList.add('active');
-      brandBtns[b].setAttribute('aria-pressed', 'true');
-    }
+    for (var b = 0; b < brandBtns.length; b++) setBtnState(brandBtns[b], true);
   }
 }
 
@@ -2025,6 +2037,7 @@ function displayInsights(data, details) {
     var workingList = document.getElementById('ac-workingList');
 
     var mode = (details && details.scoringMode) ? details.scoringMode : (window.acScoringMode || 'direct');
+    var includeCTA = (mode !== 'brand');
 
 var avgScore = (details && typeof details.avgScore === 'number')
   ? details.avgScore
@@ -2051,27 +2064,35 @@ if (fixesTitle) {
     var isVeryLowLegible = legibility < 30;
 
     // --- CTA state model (prevents contradictions) ---
-    var rawCtaText = (details && details.cta) ? String(details.cta).trim() : '';
-    var hasCtaText = rawCtaText.length > 0;
+var rawCtaText = '';
+var hasCtaText = false;
+var ctaState = 'absent';
 
-    // Thresholds you can tweak later:
-    // - Absent: no CTA text
-    // - Weak: CTA exists but score < 85
-    // - Strong: CTA score >= 85
-    var ctaState = 'absent';
-    if (hasCtaText) {
-        ctaState = (data.cta >= 90) ? 'strong' : (data.cta < 75 ? 'weak' : 'ok');
-    }
+if (includeCTA) {
+  rawCtaText = (details && details.cta) ? String(details.cta).trim() : '';
+  hasCtaText = rawCtaText.length > 0;
+
+  // - Absent: no CTA text
+  // - Weak: CTA exists but score < 75
+  // - Strong: CTA score >= 90
+  ctaState = 'absent';
+  if (hasCtaText) {
+    ctaState = (data.cta >= 90) ? 'strong' : (data.cta < 75 ? 'weak' : 'ok');
+  }
+}
 
     // Detect metric bias (your existing logic, tightened)
     var metricEntries = [
-        { key: 'readability', label: 'Readability', value: data.readability },
-        { key: 'contrast', label: 'Contrast', value: data.contrast },
-        { key: 'clarity', label: 'Clarity', value: data.clarity },
-        { key: 'colors', label: 'Colors', value: data.colors },
-        { key: 'composition', label: 'Composition', value: data.composition },
-        { key: 'cta', label: 'CTA', value: data.cta }
-    ];
+  { key: 'readability', label: 'Readability', value: data.readability },
+  { key: 'contrast', label: 'Contrast', value: data.contrast },
+  { key: 'clarity', label: 'Clarity', value: data.clarity },
+  { key: 'colors', label: 'Colors', value: data.colors },
+  { key: 'composition', label: 'Composition', value: data.composition }
+];
+
+if (includeCTA) {
+  metricEntries.push({ key: 'cta', label: 'CTA', value: data.cta });
+}
 
     var maxMetric = metricEntries[0];
     var minMetric = metricEntries[0];
@@ -2114,12 +2135,13 @@ if (isVeryLowLegible) {
   }
 }
 
-    // CTA fixes based on state (this is the clean solution)
-    if (fixes.length < 3) {
-        if (ctaState === 'absent') {
-  fixes.push('Add a clear call-to-action with contact info (URL, phone, or location)');
-} else if (ctaState === 'weak') {
-  fixes.push('CTA needs more dominance. Make it bigger, bolder, or higher contrast.');
+    // CTA fixes based on state (direct response only)
+if (includeCTA && fixes.length < 3) {
+  if (ctaState === 'absent') {
+    fixes.push('Add a clear call-to-action with contact info (URL, phone, or location)');
+  } else if (ctaState === 'weak') {
+    fixes.push('CTA needs more dominance. Make it bigger, bolder, or higher contrast.');
+  }
 }
         // If strong, do nothing — do not waste a Top Fix slot.
     }
@@ -2151,7 +2173,7 @@ if (isVeryLowLegible) {
 if (hasStrongBias && fixes.length < 3) {
   if (minMetric.key === 'readability' && (maxMetric.key === 'contrast' || maxMetric.key === 'colors')) {
     fixes.push('Your ' + maxMetric.label.toLowerCase() + ' is strong, but readability is weaker. Simplify text and hierarchy so the message scans instantly.');
-  } else if (minMetric.key === 'cta' && maxMetric.value >= 75) {
+  } else if (includeCTA && minMetric.key === 'cta' && maxMetric.value >= 75) {
 
     var alreadyHasCtaFix = false;
     for (var z = 0; z < fixes.length; z++) {
