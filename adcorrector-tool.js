@@ -2142,9 +2142,8 @@ if (includeCTA && fixes.length < 3) {
   } else if (ctaState === 'weak') {
     fixes.push('CTA needs more dominance. Make it bigger, bolder, or higher contrast.');
   }
+  // If strong, do nothing — do not waste a Top Fix slot.
 }
-        // If strong, do nothing — do not waste a Top Fix slot.
-    }
 
     // Other category fixes (only if we still have room)
     if (fixes.length < 3 && data.contrast < 70) fixes.push('Increase contrast between text and background');
