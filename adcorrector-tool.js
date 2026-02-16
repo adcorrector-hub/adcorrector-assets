@@ -1209,8 +1209,12 @@ function acApplyModeButtonUI(mode) {
   if (!btnD || !btnB) return;
 
   // Uses your CSS convention: "active"
-  btnD.classList.toggle('active', mode === 'direct');
-  btnB.classList.toggle('active', mode === 'brand');
+  var isDirect = (mode === 'direct');
+btnD.classList.toggle('active', isDirect);
+btnB.classList.toggle('active', !isDirect);
+
+btnD.setAttribute('aria-pressed', isDirect ? 'true' : 'false');
+btnB.setAttribute('aria-pressed', !isDirect ? 'true' : 'false');
 }
 
 function acRecomputeFromLast(mode) {
@@ -1239,16 +1243,34 @@ function acSetScoringMode(mode) {
   acRecomputeFromLast(mode);
 }
 
-// Make sure buttons work even if HTML inline onclick is missing
-document.addEventListener('DOMContentLoaded', function () {
-  acApplyModeButtonUI(window.acScoringMode);
-
+// Robust binding for Tilda (scripts may run after DOMContentLoaded)
+function acBindModeButtons() {
   var btnD = document.getElementById('ac-modeDirect');
   var btnB = document.getElementById('ac-modeBrand');
 
-  if (btnD) btnD.onclick = function () { acSetScoringMode('direct'); };
-  if (btnB) btnB.onclick = function () { acSetScoringMode('brand'); };
-});
+  if (!btnD || !btnB) return;
+
+  // Apply current state immediately
+  acApplyModeButtonUI(window.acScoringMode);
+
+  // Ensure clean bindings (avoid stacking)
+  btnD.onclick = function (e) {
+    if (e) e.preventDefault();
+    acSetScoringMode('direct');
+  };
+
+  btnB.onclick = function (e) {
+    if (e) e.preventDefault();
+    acSetScoringMode('brand');
+  };
+}
+
+// Run now if DOM is already ready, otherwise wait
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', acBindModeButtons);
+} else {
+  acBindModeButtons();
+}
 
         function analyzeContrast(image) {
             try {
