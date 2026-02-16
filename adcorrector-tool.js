@@ -1252,6 +1252,25 @@ function acRecomputeFromLastRun() {
   displayGrade(gradeObj, avgScore, window.acLastAnalysisData, window.acLastDetails);
   displayMetrics(window.acLastAnalysisData);
   displayInsights(window.acLastAnalysisData, window.acLastDetails);
+    // ✅ Sync Persuasion Engine when user toggles mode (Brand vs Direct)
+  if (typeof window.peRunFromAdCorrector === 'function') {
+    try {
+      window.peRunFromAdCorrector({
+  readability: scores.readability,
+  contrast: scores.contrast,
+  clarity: scores.clarity,
+  colors: scores.colors,
+  composition: scores.composition,
+  cta: scores.cta,
+  avgScore: avgScore,
+  grade: gradeObj.full,
+  wordCount: (window.acLastDetails && window.acLastDetails.wordCount) ? window.acLastDetails.wordCount : 0,
+  scoringMode: window.acScoringMode
+});
+    } catch (e) {
+      console.error('❌ Persuasion Engine toggle sync failed:', e);
+    }
+  }
 }
 
 function acBindModeButtons() {
