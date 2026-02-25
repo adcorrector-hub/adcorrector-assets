@@ -3035,7 +3035,7 @@ if (ocrStatus && ocrStatus.parentNode) {
             switchTab: switchTab,
             downloadReport: downloadReport
         };
-    })();
+})(); // This closes the AdCorrector function
 
 function acHasUsableTextInImage(ocrText) {
     if (!ocrText) return false;
@@ -3089,4 +3089,5 @@ function acHasUsableTextInImage(ocrText) {
       });
     })(cleanedFields[j]);
   }
+
 })();
