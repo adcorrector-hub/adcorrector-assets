@@ -2,7 +2,6 @@
  * Ad Corrector - Actionable Insights Module
  * Standalone vanilla JS component intended to be hosted on GitHub/jsDelivr
  */
-document.addEventListener('DOMContentLoaded', () => {
     const triggerBtn = document.getElementById('ac-ai-brief-trigger');
     const modal = document.getElementById('ac-ai-modal');
     const closeBtn = document.getElementById('ac-modal-close');
@@ -147,5 +146,3 @@ Use exactly this structure for your response, populating the brackets with your 
       resultsContainer.style.display = 'block';
     }
   };
-
-});
