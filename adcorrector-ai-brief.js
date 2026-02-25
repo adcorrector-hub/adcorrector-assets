@@ -1,9 +1,8 @@
 /**
  * Ad Corrector - Actionable Insights Module
- * Final Version: Physics Data Handshake + Secure API
+ * FINAL PRODUCTION VERSION - Connected to AdCorrector Engine
  */
 
-// 1. Grab the key from the Tilda window
 const GEMINI_API_KEY = window.GEMINI_API_KEY;
 
 const initAI = () => {
@@ -41,12 +40,21 @@ const initAI = () => {
         resultsContainer.innerHTML = '';
 
         try {
-            // THE HANDSHAKE: Pulling live data from your main Ad Corrector engine
-            const adData = {
-                speedView: window.currentSpeedView || "Not calculated yet",
-                clutterScore: window.currentClutterScore || "Not calculated yet",
-                legibility: window.currentLegibilityScore || "Not calculated yet",
-                fontThickness: window.currentFontWeight || "Standard"
+            /** * THE DATA HANDSHAKE
+             * We are reaching into your AdCorrector engine to grab the actual physics results.
+             */
+            const rawData = window.AdCorrector ? window.AdCorrector.getAnalysisData() : null;
+            
+            if (!rawData || Object.keys(rawData).length === 0) {
+                throw new Error("No analysis data found. Please upload an ad and run the tool first.");
+            }
+
+            const simplifiedData = {
+                clutterScore: rawData.clutterPercent + "%",
+                detectedText: rawData.ocrText || "No text detected",
+                colorPalette: rawData.palette ? rawData.palette.join(', ') : "Unknown",
+                brightness: rawData.brightnessScore || "Normal",
+                speedViewRating: rawData.clutterPercent > 60 ? "Poor (High Clutter)" : "Good"
             };
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -56,13 +64,15 @@ const initAI = () => {
                     contents: [{
                         parts: [{ 
                             text: `Act as an elite Out-of-Home (OOH) advertising strategist. 
-                            Analyze this specific ad physics data: ${JSON.stringify(adData)}. 
-                            Provide a "Fix-It Brief" with 3 clear sections: 
-                            1. Speed-View Analysis 
-                            2. Heatmap/Clutter Insight 
-                            3. Top 3 Design Fixes. 
+                            Analyze this specific ad physics data gathered from a visibility tool: ${JSON.stringify(simplifiedData)}. 
+                            
+                            Provide a "Fix-It Brief" for the advertiser with these 3 sections: 
+                            1. Speed-View Analysis (Based on clutter and text)
+                            2. Color & Heatmap Insight (Based on brightness and palette)
+                            3. Top 3 Immediate Design Fixes. 
+                            
                             Format the response in clean HTML using <h3> headers and bullet points. 
-                            Do not include any intro or outro text.` 
+                            Keep it professional, direct, and actionable. Do not include intro or outro text.` 
                         }]
                     }]
                 })
@@ -70,20 +80,28 @@ const initAI = () => {
 
             const data = await response.json();
             
-            // Cleanup: remove markdown markers if the AI includes them
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
             let htmlContent = data.candidates[0].content.parts[0].text;
-            htmlContent = htmlContent.replace(/```html|```/g, '');
+            htmlContent = htmlContent.replace(/```html|```/g, ''); // Clean markdown if present
             
             resultsContainer.innerHTML = htmlContent;
 
         } catch (error) {
-            resultsContainer.innerHTML = "<p style='color:red;'>Error generating brief. Please ensure the Ad Corrector tool has finished its analysis first.</p>";
-            console.error(error);
+            resultsContainer.innerHTML = `
+                <div style="padding: 20px; color: #be123c; background: #fff1f2; border-radius: 8px; border: 1px solid #fda4af;">
+                    <h3 style="margin-top:0">Synthesis Paused</h3>
+                    <p>${error.message}</p>
+                    <p style="font-size: 12px;">Ensure you have uploaded an image and the Ad Corrector analysis is complete before generating a brief.</p>
+                </div>`;
+            console.error('AI Brief Error:', error);
         } finally {
             loader.style.display = 'none';
         }
     }
 };
 
-// Run after half a second to let Tilda finish loading the button
+// Start the module with a slight delay for Tilda compatibility
 setTimeout(initAI, 500);
