@@ -44,18 +44,27 @@ const initAI = () => {
 
         try {
             // This is a placeholder for your tool's actual physics data
-            const adData = {
-                speedView: "3.2s",
-                clutterScore: "High",
-                legibility: "Poor"
-            };
+          // Grab the ACTUAL results from your main Ad Corrector engine
+    // (Adjust these variable names if your main tool uses different ones)
+    const adData = {
+        speedView: window.currentSpeedView || "Not calculated",
+        clutterScore: window.currentClutterScore || "Not calculated",
+        legibility: window.currentLegibilityScore || "Not calculated",
+        fontThickness: window.currentFontWeight || "Standard"
+    };
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
-                        parts: [{ text: `Act as an OOH expert. Analyze this ad data: ${JSON.stringify(adData)}. Give a brief fix-it plan in HTML format.` }]
+                        parts: [{ text: text: `Act as an elite Out-of-Home (OOH) advertising strategist. 
+Analyze this specific ad physics data: ${JSON.stringify(adData)}. 
+Provide a "Fix-It Brief" with 3 clear sections: 
+1. Speed-View Analysis 
+2. Heatmap/Clutter Insight 
+3. Top 3 Design Fixes. 
+Format the response in clean HTML with <h3> headers.` }]
                     }]
                 })
             });
@@ -73,3 +82,4 @@ const initAI = () => {
 
 // 3. Run the function after a 500ms delay to make sure Tilda is ready
 setTimeout(initAI, 500);
+
