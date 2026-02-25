@@ -40,10 +40,12 @@ const initAI = () => {
         resultsContainer.innerHTML = '';
 
         try {
-            /** * THE DATA HANDSHAKE
-             * We are reaching into your AdCorrector engine to grab the actual physics results.
-             */
-            const rawData = window.AdCorrector ? window.AdCorrector.getAnalysisData() : null;
+            // Check if AdCorrector exists and has the new function
+            if (!window.AdCorrector || typeof window.AdCorrector.getAnalysisData !== 'function') {
+                throw new Error("The Ad Corrector engine is still warming up. Please wait a moment or ensure you've uploaded an image.");
+            }
+
+            const rawData = window.AdCorrector.getAnalysisData();
             
             if (!rawData || Object.keys(rawData).length === 0) {
                 throw new Error("No analysis data found. Please upload an ad and run the tool first.");
@@ -105,3 +107,4 @@ const initAI = () => {
 
 // Start the module with a slight delay for Tilda compatibility
 setTimeout(initAI, 500);
+
