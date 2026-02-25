@@ -2,7 +2,6 @@
  * Ad Corrector - Actionable Insights Module
  * Standalone vanilla JS component intended to be hosted on GitHub/jsDelivr
  */
-const GEMINI_API_KEY = 'AIzaSyA2urgEfFz-kSDr2ErfQ1HCo8BQgqnbV7M';
 document.addEventListener('DOMContentLoaded', () => {
     const triggerBtn = document.getElementById('ac-ai-brief-trigger');
     const modal = document.getElementById('ac-ai-modal');
@@ -148,4 +147,5 @@ Use exactly this structure for your response, populating the brackets with your 
       resultsContainer.style.display = 'block';
     }
   };
+
 });
