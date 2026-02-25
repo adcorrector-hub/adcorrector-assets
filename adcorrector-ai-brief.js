@@ -1,6 +1,6 @@
 /**
  * Ad Corrector - Actionable Insights Module
- * FINAL PRODUCTION VERSION - Connected to AdCorrector Engine
+ * UI SCRAPER VERSION - No changes required to main tool
  */
 
 const GEMINI_API_KEY = window.GEMINI_API_KEY;
@@ -40,24 +40,21 @@ const initAI = () => {
         resultsContainer.innerHTML = '';
 
         try {
-            // Check if AdCorrector exists and has the new function
-            if (!window.AdCorrector || typeof window.AdCorrector.getAnalysisData !== 'function') {
-                throw new Error("The Ad Corrector engine is still warming up. Please wait a moment or ensure you've uploaded an image.");
-            }
-
-            const rawData = window.AdCorrector.getAnalysisData();
-            
-            if (!rawData || Object.keys(rawData).length === 0) {
-                throw new Error("No analysis data found. Please upload an ad and run the tool first.");
-            }
-
-            const simplifiedData = {
-                clutterScore: rawData.clutterPercent + "%",
-                detectedText: rawData.ocrText || "No text detected",
-                colorPalette: rawData.palette ? rawData.palette.join(', ') : "Unknown",
-                brightness: rawData.brightnessScore || "Normal",
-                speedViewRating: rawData.clutterPercent > 60 ? "Poor (High Clutter)" : "Good"
+            /**
+             * THE UI SCRAPE: We pull data directly from the HTML elements 
+             * that your main tool populates on the screen.
+             */
+            const adData = {
+                clutter: document.getElementById('ac-clutterPercent')?.innerText || "Not calculated",
+                headline: document.getElementById('ac-headlineText')?.innerText || "No headline found",
+                cta: document.getElementById('ac-ctaText')?.innerText || "No CTA found",
+                colors: document.getElementById('ac-colorPalette')?.innerText || "Not analyzed"
             };
+
+            // Check if we actually have data before sending to AI
+            if (adData.clutter === "Not calculated" || adData.clutter === "0%") {
+                throw new Error("Please upload an image and wait for the Ad Corrector analysis to finish first.");
+            }
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
@@ -66,37 +63,35 @@ const initAI = () => {
                     contents: [{
                         parts: [{ 
                             text: `Act as an elite Out-of-Home (OOH) advertising strategist. 
-                            Analyze this specific ad physics data gathered from a visibility tool: ${JSON.stringify(simplifiedData)}. 
+                            Analyze this data from an ad visibility tool:
+                            - Clutter Score: ${adData.clutter}
+                            - Headline Detected: ${adData.headline}
+                            - CTA Detected: ${adData.cta}
+                            - Color Palette: ${adData.colors}
                             
-                            Provide a "Fix-It Brief" for the advertiser with these 3 sections: 
-                            1. Speed-View Analysis (Based on clutter and text)
-                            2. Color & Heatmap Insight (Based on brightness and palette)
-                            3. Top 3 Immediate Design Fixes. 
-                            
-                            Format the response in clean HTML using <h3> headers and bullet points. 
-                            Keep it professional, direct, and actionable. Do not include intro or outro text.` 
+                            Provide a "Fix-It Brief" with 3 sections:
+                            1. Speed-View Analysis (Is it too cluttered for 3 seconds?)
+                            2. Messaging Hierarchy (Is the CTA or Headline clear?)
+                            3. Top 3 Design Fixes.
+                            Format in clean HTML with <h3> headers and bullet points. No intro or outro.` 
                         }]
                     }]
                 })
             });
 
             const data = await response.json();
-            
-            if (data.error) {
-                throw new Error(data.error.message);
-            }
+            if (data.error) throw new Error(data.error.message);
 
             let htmlContent = data.candidates[0].content.parts[0].text;
-            htmlContent = htmlContent.replace(/```html|```/g, ''); // Clean markdown if present
+            htmlContent = htmlContent.replace(/```html|```/g, '');
             
             resultsContainer.innerHTML = htmlContent;
 
         } catch (error) {
             resultsContainer.innerHTML = `
                 <div style="padding: 20px; color: #be123c; background: #fff1f2; border-radius: 8px; border: 1px solid #fda4af;">
-                    <h3 style="margin-top:0">Synthesis Paused</h3>
+                    <h3 style="margin-top:0">Analysis Data Needed</h3>
                     <p>${error.message}</p>
-                    <p style="font-size: 12px;">Ensure you have uploaded an image and the Ad Corrector analysis is complete before generating a brief.</p>
                 </div>`;
             console.error('AI Brief Error:', error);
         } finally {
@@ -105,6 +100,4 @@ const initAI = () => {
     }
 };
 
-// Start the module with a slight delay for Tilda compatibility
 setTimeout(initAI, 500);
-
