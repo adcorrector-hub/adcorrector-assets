@@ -1,6 +1,6 @@
 /**
- * Ad Corrector - Actionable Insights Module
- * RESILIENT VERSION - Auto-Retry Logic + Aria Fix
+ * Ad Corrector - AI Brief
+ * THE NUCLEAR OPTION (Universal Text Search)
  */
 
 const GEMINI_API_KEY = window.GEMINI_API_KEY;
@@ -8,91 +8,53 @@ const GEMINI_API_KEY = window.GEMINI_API_KEY;
 const initAI = () => {
     const triggerBtn = document.getElementById('ac-ai-brief-trigger');
     const modal = document.getElementById('ac-ai-modal');
-    const loader = document.getElementById('ac-loader');
     const resultsContainer = document.getElementById('ac-results');
+    const loader = document.getElementById('ac-loader');
 
     if (!triggerBtn || !modal) return;
 
-    const openModal = () => {
+    triggerBtn.onclick = async () => {
         modal.classList.add('is-open');
-        modal.removeAttribute('aria-hidden'); 
-        document.body.style.overflow = 'hidden'; 
-    };
-
-    const closeModal = () => {
-        modal.classList.remove('is-open');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = ''; 
-    };
-
-    document.getElementById('ac-modal-close')?.addEventListener('click', closeModal);
-    document.getElementById('ac-modal-backdrop')?.addEventListener('click', closeModal);
-
-    triggerBtn.addEventListener('click', () => {
-        openModal();
-        generateInsights();
-    });
-
-    async function generateInsights() {
         loader.style.display = 'flex';
         resultsContainer.innerHTML = '';
 
         try {
-            // Function to find the clutter score anywhere on the page
-            const findClutter = () => {
-                const specificClass = document.querySelector('.ac-clutter-value');
-                if (specificClass && specificClass.innerText !== "0%") return specificClass.innerText;
-                
-                // Backup: find any span that looks like a percentage but isn't 0%
-                const allSpans = Array.from(document.querySelectorAll('span'));
-                const percentSpan = allSpans.find(s => s.innerText.includes('%') && s.innerText !== "0%");
-                return percentSpan ? percentSpan.innerText : null;
-            };
+            // 1. THE SEARCH: Look for Clutter Score anywhere on the page
+            const pageText = document.body.innerText;
+            const clutterMatch = pageText.match(/Clutter\s*Score[:\s]*(\d+)%/i);
+            const clutterScore = clutterMatch ? clutterMatch[1] + "%" : null;
 
-            const clutterValue = findClutter();
+            // 2. GRAB TEXT: Look for the input fields
+            const headline = document.querySelector('[id*="headlineText"]')?.value || "Not found";
+            const cta = document.querySelector('[id*="ctaText"]')?.value || "Not found";
 
-            if (!clutterValue || clutterValue === "0%") {
-                throw new Error("No analysis detected. Please upload an image and let the Clutter Score calculate first.");
+            // 3. DEBUGGER: If it's still 0% or null, we show exactly what the script found
+            if (!clutterScore || clutterScore === "0%") {
+                throw new Error(`Data not synced. Found: Clutter(${clutterScore}), Headline(${headline})`);
             }
-
-            const adData = {
-                clutter: clutterValue,
-                headline: document.getElementById('ac-headlineText')?.value || "N/A",
-                cta: document.getElementById('ac-ctaText')?.value || "N/A"
-            };
 
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
-                        parts: [{ 
-                            text: `Act as an OOH expert. Analyze this: Clutter ${adData.clutter}, Headline: ${adData.headline}, CTA: ${adData.cta}. 
-                            Create a Fix-It Brief with <h3> sections: 
-                            1. Analysis, 2. Design Fixes. 
-                            Use HTML format.` 
-                        }]
+                        parts: [{ text: `OOH Expert Analysis: Clutter is ${clutterScore}, Headline is "${headline}", CTA is "${cta}". Write a 3-step design fix brief in HTML.` }]
                     }]
                 })
             });
 
             const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
-
             resultsContainer.innerHTML = data.candidates[0].content.parts[0].text.replace(/```html|```/g, '');
 
         } catch (error) {
-            resultsContainer.innerHTML = `
-                <div style="padding: 20px; color: #be123c; background: #fff1f2; border-radius: 8px;">
-                    <h3 style="margin-top:0">Awaiting Results</h3>
-                    <p>${error.message}</p>
-                </div>`;
+            resultsContainer.innerHTML = `<div style="padding:20px; color:#be123c;"><h3>Handshake Issue</h3><p>${error.message}</p><p>Tip: Make sure the Clutter Score is showing a number on your screen before clicking.</p></div>`;
         } finally {
             loader.style.display = 'none';
         }
-    }
+    };
+
+    // Close logic
+    document.getElementById('ac-modal-close').onclick = () => modal.classList.remove('is-open');
 };
 
-// Use multiple triggers to ensure it wakes up in Tilda
-setTimeout(initAI, 500);
-setTimeout(initAI, 2000);
+setTimeout(initAI, 1000);
