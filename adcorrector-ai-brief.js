@@ -1,38 +1,42 @@
-/**
- * Ad Corrector - AI Brief
- * THE FAIL-SAFE VERSION
- */
+const GEMINI_API_KEY = window.GEMINI_API_KEY;
 
 const initAI = () => {
-    const btn = document.getElementById('ac-ai-brief-trigger');
+    const triggerBtn = document.getElementById('ac-ai-brief-trigger');
     const modal = document.getElementById('ac-ai-modal');
-    const results = document.getElementById('ac-results');
+    const resultsContainer = document.getElementById('ac-results');
     const loader = document.getElementById('ac-loader');
 
-    if (!btn || !modal) return;
+    if (!triggerBtn || !modal) return;
 
-    btn.onclick = async function() {
-        // 1. IMMEDIATELY show the modal so we know it works
+    triggerBtn.onclick = async function() {
+        // 1. Open the modal (The part that worked!)
+        modal.classList.add('is-open');
         modal.style.display = 'flex';
         loader.style.display = 'block';
-        results.innerHTML = "";
+        resultsContainer.innerHTML = '';
 
         try {
-            // 2. SCRAPE DATA (Looking for the specific names in your JS file)
-            const clutter = document.querySelector('.ac-clutter-value')?.innerText || "Not Calculated";
-            const headline = document.getElementById('ac-headlineText')?.value || "Not Entered";
-            const cta = document.getElementById('ac-ctaText')?.value || "Not Entered";
-            
-            const key = window.GEMINI_API_KEY;
+            // 2. THE REAL HANDSHAKE
+            // Instead of "3.2s", we grab the actual % from your screen
+            const realClutter = document.querySelector('.ac-clutter-value')?.innerText || "0%";
+            const realHeadline = document.getElementById('ac-headlineText')?.value || "None detected";
+            const realCTA = document.getElementById('ac-ctaText')?.value || "None detected";
 
-            // 3. TALK TO GOOGLE
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+            // 3. SEND TO AI
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
                         parts: [{ 
-                            text: `OOH Expert: Analyze this ad. Speed-View/Clutter: ${clutter}. Headline: "${headline}". CTA: "${cta}". Provide a 3-point fix-it plan in simple HTML.` 
+                            text: `Act as an OOH expert. Analyze this specific ad data: 
+                            - Clutter/Speed-View: ${realClutter}
+                            - Headline: ${realHeadline}
+                            - CTA: ${realCTA}
+                            
+                            Provide a brief "Fix-It Plan" in HTML with <h3> headers for:
+                            1. Visibility Analysis
+                            2. Design Recommendations.` 
                         }]
                     }]
                 })
@@ -40,17 +44,18 @@ const initAI = () => {
 
             const data = await response.json();
             loader.style.display = 'none';
-            results.innerHTML = data.candidates[0].content.parts[0].text.replace(/```html|```/g, '');
+            
+            // Show the real AI response
+            resultsContainer.innerHTML = data.candidates[0].content.parts[0].text.replace(/```html|```/g, '');
 
-        } catch (err) {
+        } catch (error) {
             loader.style.display = 'none';
-            results.innerHTML = `<p style="color:red"><b>Connection Issue:</b> ${err.message}</p>`;
+            resultsContainer.innerHTML = "Something went wrong. Make sure your API key is correct.";
         }
     };
 
-    // Close Button Logic
+    // Close Button logic
     document.getElementById('ac-modal-close').onclick = () => { modal.style.display = 'none'; };
 };
 
-// Start the script
 setTimeout(initAI, 1000);
