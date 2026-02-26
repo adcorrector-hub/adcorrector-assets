@@ -35,21 +35,18 @@ const initAI = () => {
             const cta = document.getElementById('ac-ctaText')?.value || "Not provided";
 
             // 4. THE API CALL
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ 
-                            text: `Act as an OOH expert. Analyze this ad data: Clutter: ${clutter}, Headline: "${headline}", CTA: "${cta}". 
-                            Provide a Fix-It Brief in HTML format with <h3> headers: 
-                            1. Speed-View Analysis 
-                            2. 3 Specific Design Fixes. 
-                            Keep it direct and professional. Do not include intro/outro text.` 
-                        }]
-                    }]
-                })
-            });
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        contents: [{
+            parts: [{ 
+                text: `Act as an OOH expert. Analyze this ad data: Clutter: ${clutter}, Headline: "${headline}", CTA: "${cta}". 
+                Provide a Fix-It Brief in HTML format with <h3> headers. Keep it professional and direct.` 
+            }]
+        }]
+    })
+});
 
             const data = await response.json();
 
@@ -82,3 +79,4 @@ const initAI = () => {
 
 // Initialize with a safety delay
 setTimeout(initAI, 1000);
+
