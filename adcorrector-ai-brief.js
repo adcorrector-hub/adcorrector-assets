@@ -1,60 +1,64 @@
 /**
  * Ad Corrector - AI Brief
- * THE NUCLEAR OPTION (Universal Text Search)
+ * VERSION: MATCHED TO YOUR ENGINE LABELS
  */
-
-const GEMINI_API_KEY = window.GEMINI_API_KEY;
 
 const initAI = () => {
     const triggerBtn = document.getElementById('ac-ai-brief-trigger');
     const modal = document.getElementById('ac-ai-modal');
-    const resultsContainer = document.getElementById('ac-results');
+    const results = document.getElementById('ac-results');
     const loader = document.getElementById('ac-loader');
 
     if (!triggerBtn || !modal) return;
 
-    triggerBtn.onclick = async () => {
-        modal.classList.add('is-open');
-        loader.style.display = 'flex';
-        resultsContainer.innerHTML = '';
+    triggerBtn.onclick = async function() {
+        modal.style.display = 'flex';
+        loader.style.display = 'block';
+        results.innerHTML = "";
 
         try {
-            // 1. THE SEARCH: Look for Clutter Score anywhere on the page
-            const pageText = document.body.innerText;
-            const clutterMatch = pageText.match(/Clutter\s*Score[:\s]*(\d+)%/i);
-            const clutterScore = clutterMatch ? clutterMatch[1] + "%" : null;
+            /** * THE DATA SEARCH:
+             * We are looking for the "Speed-View Score" (your clutter metric)
+             * and your Headline/CTA inputs.
+             */
+            const clutterValue = document.querySelector('.ac-clutter-value')?.innerText || "0%";
+            const headline = document.getElementById('ac-headlineText')?.value || "Not set";
+            const cta = document.getElementById('ac-ctaText')?.value || "Not set";
+            
+            const apiKey = window.GEMINI_API_KEY;
 
-            // 2. GRAB TEXT: Look for the input fields
-            const headline = document.querySelector('[id*="headlineText"]')?.value || "Not found";
-            const cta = document.querySelector('[id*="ctaText"]')?.value || "Not found";
-
-            // 3. DEBUGGER: If it's still 0% or null, we show exactly what the script found
-            if (!clutterScore || clutterScore === "0%") {
-                throw new Error(`Data not synced. Found: Clutter(${clutterScore}), Headline(${headline})`);
-            }
-
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
-                        parts: [{ text: `OOH Expert Analysis: Clutter is ${clutterScore}, Headline is "${headline}", CTA is "${cta}". Write a 3-step design fix brief in HTML.` }]
+                        parts: [{ 
+                            text: `Act as an OOH expert. Analyze this ad data: 
+                            - Speed-View Score: ${clutterValue}
+                            - Headline: ${headline}
+                            - CTA: ${cta}
+                            
+                            Give a Fix-It Brief in HTML format with <h3> headers:
+                            1. Analysis 
+                            2. 3 Design Fixes.` 
+                        }]
                     }]
                 })
             });
 
             const data = await response.json();
-            resultsContainer.innerHTML = data.candidates[0].content.parts[0].text.replace(/```html|```/g, '');
-
-        } catch (error) {
-            resultsContainer.innerHTML = `<div style="padding:20px; color:#be123c;"><h3>Handshake Issue</h3><p>${error.message}</p><p>Tip: Make sure the Clutter Score is showing a number on your screen before clicking.</p></div>`;
-        } finally {
             loader.style.display = 'none';
+            results.innerHTML = data.candidates[0].content.parts[0].text.replace(/```html|```/g, '');
+
+        } catch (err) {
+            loader.style.display = 'none';
+            results.innerHTML = `<p style="color:red">Error: ${err.message}</p>`;
         }
     };
 
-    // Close logic
-    document.getElementById('ac-modal-close').onclick = () => modal.classList.remove('is-open');
+    const closeMe = () => { modal.style.display = 'none'; };
+    document.getElementById('ac-modal-close').onclick = closeMe;
+    document.getElementById('ac-modal-backdrop').onclick = closeMe;
 };
 
 setTimeout(initAI, 1000);
