@@ -1,6 +1,6 @@
 /**
  * Ad Corrector - AI Brief
- * VERSION: UNIVERSAL MODEL COMPATIBILITY
+ * VERSION: STABLE ENDPOINT FIX
  */
 
 const initAI = () => {
@@ -30,8 +30,8 @@ const initAI = () => {
             const headline = document.getElementById('ac-headlineText')?.value || "Not provided";
             const cta = document.getElementById('ac-ctaText')?.value || "Not provided";
 
-            // UPDATED URL: Using gemini-1.5-flash-latest for maximum key compatibility
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+            // SWITCHED TO STABLE V1 ENDPOINT
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -47,7 +47,6 @@ const initAI = () => {
             const data = await response.json();
 
             if (data.error) {
-                // This will tell us if the model name is STILL an issue
                 throw new Error(data.error.message);
             }
 
