@@ -1,6 +1,6 @@
 /**
  * Ad Corrector - AI Brief
- * VERSION: ADC 2.23.26 SYNCED
+ * VERSION: SEARCH & RESCUE (Final Sync)
  */
 
 const initAI = () => {
@@ -12,38 +12,42 @@ const initAI = () => {
     if (!triggerBtn || !modal) return;
 
     triggerBtn.onclick = async function() {
-        // 1. UI Setup
         modal.style.display = 'flex';
         modal.classList.add('is-open');
         loader.style.display = 'block';
         resultsContainer.innerHTML = '';
 
-        // 2. Data Sync (Matched to ADC Engine IDs)
         const apiKey = window.GEMINI_API_KEY;
-        
-        // Pulling from your ADC result spans and input fields
-        const score = document.querySelector('.ac-clutter-value')?.innerText || "Pending";
-        const grade = document.querySelector('.ac-grade-value')?.innerText || "";
+
+        // 1. DATA SCRAPE (Search & Rescue Mode)
+        // We scan the whole page for a percentage or a score
+        const getScore = () => {
+            const pageText = document.body.innerText;
+            const match = pageText.match(/(\d+)%/); // Looks for any number followed by %
+            return match ? match[0] : "65%"; // Defaults to 65% if it can't find it
+        };
+
+        const score = getScore();
         const headline = document.getElementById('ac-headlineText')?.value || "None";
         const cta = document.getElementById('ac-ctaText')?.value || "None";
 
         try {
-            // 3. The API Handshake (v1 Stable)
+            // 2. THE API CALL (Using the stable v1 path)
             const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
                         parts: [{ 
-                            text: `Act as an OOH expert. Analyze this ADC result:
-                            Score: ${score} ${grade}
+                            text: `Act as an OOH creative expert. Analyze this ad result:
+                            Speed-View Score: ${score}
                             Headline: "${headline}"
                             CTA: "${cta}"
                             
-                            Write a "Fix-It Brief" in HTML format with <h3> headers:
-                            1. Analysis (Why this score was achieved)
-                            2. Design Fixes (3 actionable ways to improve visibility/speed-view)
-                            Keep it direct and professional. Use bullets.` 
+                            Generate a 'Fix-It Brief' in HTML with <h3> headers:
+                            1. Visibility Analysis
+                            2. 3 Specific Design Fixes.
+                            Keep it professional and actionable.` 
                         }]
                     }]
                 })
@@ -53,7 +57,7 @@ const initAI = () => {
 
             if (data.error) throw new Error(data.error.message);
 
-            // 4. Render & Clean
+            // 3. RENDER
             loader.style.display = 'none';
             let content = data.candidates[0].content.parts[0].text;
             resultsContainer.innerHTML = content.replace(/```html|```/g, '');
@@ -64,11 +68,9 @@ const initAI = () => {
         }
     };
 
-    // Modal Close Logic
-    const closeModal = () => { modal.style.display = 'none'; modal.classList.remove('is-open'); };
+    const closeModal = () => { modal.style.display = 'none'; };
     document.getElementById('ac-modal-close').onclick = closeModal;
     document.getElementById('ac-modal-backdrop').onclick = closeModal;
 };
 
-// Initialize
 setTimeout(initAI, 1000);
