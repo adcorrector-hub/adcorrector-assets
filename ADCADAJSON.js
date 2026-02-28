@@ -2727,7 +2727,7 @@ if (hasStrongBias && fixes.length < 3) {
                 var ctx = reportCanvas.getContext('2d');
                 
                 reportCanvas.width = 1700;
-                reportCanvas.height = 2200;
+                reportCanvas.height = 2400;
                 
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, reportCanvas.width, reportCanvas.height);
@@ -2903,8 +2903,45 @@ if (typeof value !== 'number') {
                     ctx.fillRect(barX, barY, barWidth * (value / 100), 20);
                 }
                 
-                yPos = 1360;
+                // --- NEW: COMPLIANCE SECTION FOR REPORT ---
+                var complianceY = metricY + (2 * metricHeight) + metricGap + 40; 
                 
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 28px Arial';
+                ctx.fillText('Compliance & Accessibility', 60, complianceY);
+                
+                complianceY += 40;
+                var compLabels = ['ADA Contrast', 'Contrast Ratio', 'Color Blind Risk'];
+                var compVals = [
+                    analysisData.adaCompliance || 'N/A',
+                    analysisData.contrastRatioRaw ? analysisData.contrastRatioRaw + ':1' : 'N/A',
+                    analysisData.colorBlindRisk || 'N/A'
+                ];
+                
+                for (var c = 0; c < 3; c++) {
+                    var cx = metricX + (c * (metricWidth + metricGap));
+                    
+                    // Draw dark card background to match the UI vibe
+                    ctx.fillStyle = '#0f172a'; 
+                    ctx.fillRect(cx, complianceY, metricWidth, 100);
+                    
+                    // Draw Label
+                    ctx.fillStyle = '#94a3b8'; 
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText(compLabels[c].toUpperCase(), cx + 25, complianceY + 35);
+                    
+                    // Draw Value with conditional red warning color
+                    if (c === 2 && compVals[c].indexOf('High') !== -1) {
+                        ctx.fillStyle = '#ff6b6b'; 
+                    } else {
+                        ctx.fillStyle = '#ffffff';
+                    }
+                    ctx.font = 'bold 32px Arial';
+                    ctx.fillText(compVals[c], cx + 25, complianceY + 75);
+                }
+                // ------------------------------------------
+                
+                yPos = 1560; // Shifted down from 1360 to make room
                 ctx.fillStyle = '#333';
                 ctx.font = 'bold 36px Arial';
                 ctx.fillText('Key Insights & Recommendations', 60, yPos);
