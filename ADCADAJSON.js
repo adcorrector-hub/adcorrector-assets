@@ -1146,6 +1146,7 @@ window.acLastDetails = details;
 
 displayGrade(gradeObj, avgScore, analysisData, details);
 displayMetrics(analysisData);
+displayCompliance(analysisData);
 displayInsights(analysisData, details);
 renderCanvases();
 
@@ -1248,6 +1249,7 @@ function acRecomputeFromLastRun() {
 
   displayGrade(gradeObj, avgScore, window.acLastAnalysisData, window.acLastDetails);
   displayMetrics(window.acLastAnalysisData);
+  displayCompliance(window.acLastAnalysisData);
   displayInsights(window.acLastAnalysisData, window.acLastDetails);
     // ✅ Sync Persuasion Engine when user toggles mode (Brand vs Direct)
   if (typeof window.peRunFromAdCorrector === 'function') {
@@ -2098,6 +2100,29 @@ extraNoteHtml +
       toggleCard(node);
     }
   };
+}
+
+function displayCompliance(data) {
+    var adaEl = document.getElementById('ac-adaContrastVal');
+    var ratioEl = document.getElementById('ac-contrastRatioVal');
+    var cbEl = document.getElementById('ac-colorBlindVal');
+
+    if (adaEl) {
+        adaEl.textContent = data.adaCompliance || 'N/A';
+    }
+    if (ratioEl) {
+        // Appends ":1" to the end of the raw number for standard notation (e.g., 5101.00:1)
+        ratioEl.textContent = data.contrastRatioRaw ? data.contrastRatioRaw + ':1' : 'N/A';
+    }
+    if (cbEl) {
+        cbEl.textContent = data.colorBlindRisk || 'N/A';
+        // Add a warning color if risk is high
+        if (data.colorBlindRisk && data.colorBlindRisk.indexOf('High') !== -1) {
+            cbEl.style.color = '#ff6b6b';
+        } else {
+            cbEl.style.color = '#ffffff';
+        }
+    }
 }
 
 function displayInsights(data, details) {
