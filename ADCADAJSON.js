@@ -1641,7 +1641,7 @@ if (colorArray.length >= 2) {
     var isRedGreenConflict = (isRed1 && isGreen2) || (isGreen1 && isRed2);
     var lumDifference = Math.abs(lum1 - lum2);
 
-    if (isRedGreenConflict && lumDifference < 40) {
+    if (isRedGreenConflict && lumDifference < 70) {
         colorBlindRisk = "High (Red/Green pair lacks contrast)";
     }
 }
