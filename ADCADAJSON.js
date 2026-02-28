@@ -2814,8 +2814,9 @@ var speedCanvas = document.getElementById('ac-speedCanvas');
 var imgHeight = 340;
 var imgWidth = (speedCanvas.width / speedCanvas.height) * imgHeight;
 
-if (imgWidth > 800) {
-  imgWidth = 800;
+// NEW: Shrink max width to 760px so we have room for proper margins
+if (imgWidth > 760) {
+  imgWidth = 760;
   imgHeight = (speedCanvas.height / speedCanvas.width) * imgWidth;
 }
 
@@ -2823,13 +2824,14 @@ ctx.strokeStyle = '#ddd';
 ctx.lineWidth = 2;
 ctx.strokeRect(60, yPos + 20, imgWidth, imgHeight);
 ctx.drawImage(speedCanvas, 60, yPos + 20, imgWidth, imgHeight);                
-                ctx.fillStyle = '#333';
-                ctx.font = 'bold 28px Arial';
-                ctx.fillText('Attention Heatmap', 900, yPos);
-                
-                var heatmapCanvas = document.getElementById('ac-heatmapCanvas');
-                ctx.strokeRect(900, yPos + 20, imgWidth, imgHeight);
-                ctx.drawImage(heatmapCanvas, 900, yPos + 20, imgWidth, imgHeight);
+ctx.fillStyle = '#333';
+ctx.font = 'bold 28px Arial';
+
+// NEW: Shifted X-coordinate from 900 to 880 for perfect symmetry
+ctx.fillText('Attention Heatmap', 880, yPos);
+var heatmapCanvas = document.getElementById('ac-heatmapCanvas');
+ctx.strokeRect(880, yPos + 20, imgWidth, imgHeight);
+ctx.drawImage(heatmapCanvas, 880, yPos + 20, imgWidth, imgHeight);
                 
                 yPos = 880;
                 
