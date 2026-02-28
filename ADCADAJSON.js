@@ -1640,13 +1640,18 @@ if (colorArray.length >= 2) {
 
     var isRedGreenConflict = (isRed1 && isGreen2) || (isGreen1 && isRed2);
     var lumDifference = Math.abs(lum1 - lum2);
-
-    if (isRedGreenConflict && lumDifference < 70) {
-        colorBlindRisk = "High (Red/Green pair lacks contrast)";
+    
+    // --- UPDATED: 3-Tier Color Blindness Check ---
+    if (isRedGreenConflict) {
+        if (lumDifference < 70) {
+            colorBlindRisk = "High (Red/Green pair lacks contrast)";
+        } else if (lumDifference < 110) {
+            colorBlindRisk = "Moderate (Vibration risk at speed)";
+        }
     }
+    // ---------------------------------------------
 }
 analysisData.colorBlindRisk = colorBlindRisk;
-// -------------------------------------------------------
 
     // -----------------------
     // SCORING MODEL (OOH realistic)
@@ -2116,11 +2121,13 @@ function displayCompliance(data) {
     }
     if (cbEl) {
         cbEl.textContent = data.colorBlindRisk || 'N/A';
-        // Add a warning color if risk is high
+        // Add warning colors for High and Moderate risks
         if (data.colorBlindRisk && data.colorBlindRisk.indexOf('High') !== -1) {
-            cbEl.style.color = '#ff6b6b';
+            cbEl.style.color = '#ff6b6b'; // Red
+        } else if (data.colorBlindRisk && data.colorBlindRisk.indexOf('Moderate') !== -1) {
+            cbEl.style.color = '#ffc107'; // Yellow
         } else {
-            cbEl.style.color = '#ffffff';
+            cbEl.style.color = '#ffffff'; // White
         }
     }
 }
@@ -2930,11 +2937,13 @@ if (typeof value !== 'number') {
                     ctx.font = 'bold 16px Arial';
                     ctx.fillText(compLabels[c].toUpperCase(), cx + 25, complianceY + 35);
                     
-                    // Draw Value with conditional red warning color
+                    // Draw Value with conditional warning colors
                     if (c === 2 && compVals[c].indexOf('High') !== -1) {
-                        ctx.fillStyle = '#ff6b6b'; 
+                        ctx.fillStyle = '#ff6b6b'; // Red
+                    } else if (c === 2 && compVals[c].indexOf('Moderate') !== -1) {
+                        ctx.fillStyle = '#ffc107'; // Yellow
                     } else {
-                        ctx.fillStyle = '#ffffff';
+                        ctx.fillStyle = '#ffffff'; // White
                     }
                     ctx.font = 'bold 32px Arial';
                     ctx.fillText(compVals[c], cx + 25, complianceY + 75);
