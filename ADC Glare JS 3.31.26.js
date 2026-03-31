@@ -2620,7 +2620,6 @@ function displayInsights(data, details) {
     ctx.globalAlpha = 1.0;
     ctx.filter = 'none';
 }
-}
 
         function switchTab(tabName) {
             try {
