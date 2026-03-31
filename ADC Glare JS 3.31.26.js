@@ -2599,16 +2599,21 @@ function displayInsights(data, details) {
 
     var ctx = canvas.getContext('2d');
     
+    // 1. Guardrail: Prevent fatal crash if browser hits canvas memory limit
+    if (!ctx) {
+        console.warn('Browser canvas memory limit reached. Glare view rendering aborted.');
+        return;
+    }
+
     // Technical match to uploaded resolution
     canvas.width = uploadedImage.width;
     canvas.height = uploadedImage.height;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Deterministic Washout Formula:
-    // Brightness(1.35) + Contrast(0.75) + Saturation(0.9)
-    // Preserves brand color while simulating physical tonal compression
-    ctx.filter = 'brightness(1.35) contrast(0.75) saturate(0.9)';
+    // 2. Deterministic Washout Formula (Updated to strict % for cross-browser stability):
+    // Brightness(135%) + Contrast(75%) + Saturation(90%)
+    ctx.filter = 'brightness(135%) contrast(75%) saturate(90%)';
     ctx.drawImage(uploadedImage, 0, 0);
     
     // Simulates Specular Reflection (Solar disc haze at 8% Alpha)
@@ -2620,7 +2625,7 @@ function displayInsights(data, details) {
     ctx.globalAlpha = 1.0;
     ctx.filter = 'none';
 }
-		   
+
         function switchTab(tabName) {
             try {
                 var tabs = document.querySelectorAll('.adcorrector-tool .ac-tab');
