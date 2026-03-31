@@ -2620,7 +2620,7 @@ function displayInsights(data, details) {
     ctx.globalAlpha = 1.0;
     ctx.filter = 'none';
 }
-
+		   
         function switchTab(tabName) {
             try {
                 var tabs = document.querySelectorAll('.adcorrector-tool .ac-tab');
