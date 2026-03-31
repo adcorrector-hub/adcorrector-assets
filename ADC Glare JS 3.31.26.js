@@ -524,7 +524,7 @@ if (!reliableEnough) {
 var autofillSource = (window.acReliableDetectedText || "").toString().trim();
 
 if (autofillSource.length) {
-    // Build "lines" from reliable text. (No \n expected, but we support it anyway.)
+    // Build "lines" from reliable text. // (No \n expected, but we support it anyway.)
     var lines = autofillSource.split('\n').map(function(l){ return l.trim(); }).filter(function(l){
         return l.length > 2;
     });
@@ -2592,7 +2592,6 @@ function displayInsights(data, details) {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
-}
 
 function renderGlareView() {
     var canvas = document.getElementById('ac-glareCanvas');
@@ -2624,6 +2623,7 @@ function renderGlareView() {
     // Reset state
     ctx.globalAlpha = 1.0;
     ctx.filter = 'none';
+}
 }
 
         function switchTab(tabName) {
