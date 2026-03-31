@@ -522,9 +522,9 @@ if (!reliableEnough) {
 
                         // ✅ Use RELIABLE text for autofill (NOT full OCR text)
 var autofillSource = (window.acReliableDetectedText || "").toString().trim();
-
 if (autofillSource.length) {
-    // Build "lines" from reliable text. (No \n expected, but we support it anyway.)
+    // Build "lines" from reliable text.
+    // (No \n expected, but we support it anyway.)
     var lines = autofillSource.split('\n').map(function(l){ return l.trim(); }).filter(function(l){
         return l.length > 2;
     });
