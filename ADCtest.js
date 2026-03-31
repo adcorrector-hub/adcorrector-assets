@@ -2599,39 +2599,61 @@ function renderGlare() {
             if (!canvas || !uploadedImage) return;
 
             var ctx = canvas.getContext('2d');
-            canvas.width = uploadedImage.width;
-            canvas.height = uploadedImage.height;
+            var w = canvas.width = uploadedImage.width;
+            var h = canvas.height = uploadedImage.height;
 
-            // 1. Environmental Washout
-            // Vinyl scatters ambient light, lowering contrast and washing out deep blacks.
-            ctx.filter = 'brightness(135%) contrast(75%) saturate(85%)';
-            ctx.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
+            // 1. Base Layer
+            ctx.drawImage(uploadedImage, 0, 0, w, h);
 
-            // Reset filter for the next layer
-            ctx.filter = 'none';
-
-            // 2. Specular Reflection (Sun Flare)
-            // Simulates direct sunlight hitting the top-right quadrant of the board.
-            var cx = canvas.width * 0.75;
-            var cy = canvas.height * -0.1; // Originates slightly above the board
-            var radius = Math.max(canvas.width, canvas.height) * 1.2;
-
-            var gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-            
-            // Core of the reflection (hot white)
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.75)'); 
-            // Mid-flare (warm atmospheric bleed)
-            gradient.addColorStop(0.35, 'rgba(255, 250, 240, 0.35)'); 
-            // Falloff
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-            // Use 'screen' composite to realistically add light values without muddying the colors
+            // 2. Atmospheric Washout (UV Ambient Light Scattering)
+            // Vinyl reflects ambient UV, lifting the black floor to a milky grey/blue.
             ctx.globalCompositeOperation = 'screen';
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(70, 80, 95, 0.35)'; // Cool atmospheric tint
+            ctx.fillRect(0, 0, w, h);
 
-            // Reset composite operation to default
+            // 3. Luminance-Reactive Bloom (Physics-Informed Specular)
+            // Real sun doesn't paint a white circle; it blows out bright pixels 
+            // exponentially more than dark pixels. We create an overexposed map.
+            var bloomCanvas = document.createElement('canvas');
+            bloomCanvas.width = w;
+            bloomCanvas.height = h;
+            var bCtx = bloomCanvas.getContext('2d');
+
+            // Define the sun's hit area (top right quadrant expanding outward)
+            var cx = w * 0.7;
+            var cy = h * -0.15;
+            var radius = Math.max(w, h) * 1.1;
+            var maskGrad = bCtx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            
+            // Intensity curve for the light falloff
+            maskGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)'); 
+            maskGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.6)'); 
+            maskGrad.addColorStop(0.8, 'rgba(255, 255, 255, 0.0)');
+
+            bCtx.fillStyle = maskGrad;
+            bCtx.fillRect(0, 0, w, h);
+
+            // Mask an overexposed version of the ad inside the sun gradient
+            bCtx.globalCompositeOperation = 'source-in';
+            bCtx.filter = 'brightness(150%) contrast(160%) saturate(85%)';
+            bCtx.drawImage(uploadedImage, 0, 0, w, h);
+
+            // Blend the reactive bloom back onto the main canvas
+            // 'color-dodge' accurately mimics intense light energy adding to pigments
+            ctx.globalCompositeOperation = 'color-dodge'; 
+            ctx.drawImage(bloomCanvas, 0, 0, w, h);
+
+            // 4. Vinyl Surface Sheen (Directional Gloss)
+            ctx.globalCompositeOperation = 'screen';
+            var sheenGrad = ctx.createLinearGradient(0, 0, w, h);
+            sheenGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+            sheenGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.0)');
+            ctx.fillStyle = sheenGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Reset state
             ctx.globalCompositeOperation = 'source-over';
+            ctx.filter = 'none';
         }
 
         function switchTab(tabName) {
