@@ -522,9 +522,9 @@ if (!reliableEnough) {
 
                         // ✅ Use RELIABLE text for autofill (NOT full OCR text)
 var autofillSource = (window.acReliableDetectedText || "").toString().trim();
+
 if (autofillSource.length) {
-    // Build "lines" from reliable text.
-    // (No \n expected, but we support it anyway.)
+    // Build "lines" from reliable text. (No \n expected, but we support it anyway.)
     var lines = autofillSource.split('\n').map(function(l){ return l.trim(); }).filter(function(l){
         return l.length > 2;
     });
@@ -2317,16 +2317,16 @@ function displayInsights(data, details) {
 }
        
         function renderCanvases() {
-    try {
-        renderOriginal();
-        renderSpeedView();
-        renderHeatmap();
-        renderGlareView();
-    } catch (error) {
-        console.error('Canvas rendering error:', error);
-        alert('Error rendering visualizations. Results may be incomplete.');
-    }
-}
+            try {
+                renderOriginal();
+                renderSpeedView();
+                renderHeatmap();
+                renderGlareView();
+            } catch (error) {
+                console.error('Canvas rendering error:', error);
+                alert('Error rendering visualizations. Results may be incomplete.');
+            }
+        }
 
         function renderOriginal() {
             var canvas = document.getElementById('ac-originalCanvas');
@@ -2592,8 +2592,9 @@ function displayInsights(data, details) {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+}
 
-	function renderGlareView() {
+function renderGlareView() {
     var canvas = document.getElementById('ac-glareCanvas');
     if (!canvas || !uploadedImage) return;
 
@@ -2653,7 +2654,7 @@ function displayInsights(data, details) {
                     'original': 'Original design view',
                     'speed': 'Speed view simulation',
                     'heatmap': 'Attention heatmap view',
-		    'glare': 'Environmental glare simulation'
+	    	    'glare': 'Environmental glare simulation'
                 };
                 announceToScreenReader('Switched to ' + (tabNames[tabName] || tabName));
             } catch (error) {
