@@ -2317,16 +2317,16 @@ function displayInsights(data, details) {
 }
        
         function renderCanvases() {
-            try {
-                renderOriginal();
-                renderSpeedView();
-                renderHeatmap();
-  		renderGlareView();
-            } catch (error) {
-                console.error('Canvas rendering error:', error);
-                alert('Error rendering visualizations. Results may be incomplete.');
-            }
-        }
+    try {
+        renderOriginal();
+        renderSpeedView();
+        renderHeatmap();
+        renderGlareView();
+    } catch (error) {
+        console.error('Canvas rendering error:', error);
+        alert('Error rendering visualizations. Results may be incomplete.');
+    }
+}
 
         function renderOriginal() {
             var canvas = document.getElementById('ac-originalCanvas');
@@ -2599,7 +2599,7 @@ function displayInsights(data, details) {
 
     var ctx = canvas.getContext('2d');
     
-    // 1. Guardrail: Prevent fatal crash if browser hits canvas memory limit
+    // Guardrail: Prevent fatal crash if browser hits canvas memory limit
     if (!ctx) {
         console.warn('Browser canvas memory limit reached. Glare view rendering aborted.');
         return;
@@ -2611,8 +2611,7 @@ function displayInsights(data, details) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // 2. Deterministic Washout Formula (Updated to strict % for cross-browser stability):
-    // Brightness(135%) + Contrast(75%) + Saturation(90%)
+    // Deterministic Washout Formula (Strict % for cross-browser stability)
     ctx.filter = 'brightness(135%) contrast(75%) saturate(90%)';
     ctx.drawImage(uploadedImage, 0, 0);
     
