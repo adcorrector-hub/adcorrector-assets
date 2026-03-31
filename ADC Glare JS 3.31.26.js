@@ -2592,6 +2592,7 @@ function displayInsights(data, details) {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    }
 
 function renderGlareView() {
     var canvas = document.getElementById('ac-glareCanvas');
