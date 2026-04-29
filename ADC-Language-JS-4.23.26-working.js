@@ -382,7 +382,7 @@ ctx.drawImage(img, 0, 0, newWidth, newHeight);
             statusDiv.className = 'ac-ocr-status';
             statusDiv.setAttribute('role', 'status');
             statusDiv.setAttribute('aria-live', 'polite');
-            statusDiv.innerHTML = '<div class="ac-ocr-status-content"><strong style="color: #2389ff;">⏳ Analyzing text in image...</strong><br><span style="color: #666; font-size: 0.9em;">This will take a few seconds</span></div>';
+            statusDiv.innerHTML = '<div class="ac-ocr-status-content"><strong style="color: #2389ff;">Analyzing text in image...</strong><br><span style="color: #666; font-size: 0.9em;">This will take a few seconds</span></div>';
             
             var formSection = document.getElementById('ac-formSection');
             var photoWarning = document.getElementById('ac-photoWarning');
@@ -397,12 +397,12 @@ ctx.drawImage(img, 0, 0, newWidth, newHeight);
             
             if (status === 'success') {
                 color = '#2b8a3e';
-                icon = '✓';
+                icon = '&#10003;';
                 detailsText = details || 'You can edit the text below if needed';
                 announceToScreenReader(message + '. ' + detailsText);
             } else if (status === 'error') {
                 color = '#ff6b6b';
-                icon = '⚠️';
+                icon = '&#9888;';
                 detailsText = details || 'Please type your headline and CTA manually below';
                 announceToScreenReader(message + '. ' + detailsText);
             }
@@ -600,7 +600,7 @@ if (!reliableEnough) {
   analysisData.ocrBoxes = [];
 }
 
-                        // ✅ Use RELIABLE text for autofill (NOT full OCR text)
+                        // Use reliable text for autofill, not full OCR text.
 var autofillSource = (window.acReliableDetectedText || "").toString().trim();
 
 if (autofillSource.length) {
@@ -957,7 +957,7 @@ function acGetActionWordBonus(ctaLower) {
     'schedule','reserve','apply','donate','join'
   ];
 
-  // “Engagement” verbs (lighter bonus)
+  // Engagement verbs (lighter bonus)
   var engage = ['discover','explore','learn','see','watch','find','view'];
 
   // Passive but action-oriented (still valid in OOH, lighter bonus)
@@ -1010,11 +1010,11 @@ function acComputeCtaScore(ctaText) {
     var words = t.split(/\s+/).filter(Boolean);
     var wc = words.length;
 
-// ✅ Guard: 1-letter CTA should not score high
+// Guard: 1-letter CTA should not score high
 var compact = t.replace(/[^a-z0-9]/g, '');
 if (compact.length <= 1) return 22;
 
-// ✅ Guard: 2-character CTA is usually junk, allow only specific legit cases
+// Guard: 2-character CTA is usually junk, allow only specific legit cases
 if (compact.length === 2) {
   var allow2 = new Set(['go']); // keep tight on purpose
   if (!allow2.has(compact)) return 35;
@@ -1030,10 +1030,10 @@ if (compact.length === 2) {
     else if (wc >= 6) score -= 25;
     else if (wc >= 4) score -= 10;
 
-    // ✅ Action word bonus (new logic)
+    // Action word bonus
 var bonus = 0;
 if (typeof acGetActionWordBonus === 'function') {
-  bonus = acGetActionWordBonus(ctaText); // returns 0–9
+  bonus = acGetActionWordBonus(ctaText); // returns 0-9
 }
 score += bonus;
 
@@ -1103,7 +1103,7 @@ if (totalWords === 0) {
   if (totalWords <= idealLimit) {
     readabilityScore = 100;
   } else if (totalWords <= warnLimit) {
-    // gentle slope down from 100 to ~80 across the “borderline” range
+    // Gentle slope down from 100 to about 80 across the borderline range.
     var span1 = Math.max(1, (warnLimit - idealLimit));
     var over1 = (totalWords - idealLimit);
     readabilityScore = 100 - Math.round((over1 / span1) * 20); // down to ~80
@@ -1142,7 +1142,7 @@ var clarityScore  = analyzeClarity(uploadedImage, speed, distance, totalWords, c
 var colorScore    = analyzeColors(uploadedImage);
 var compositionScore = analyzeComposition(uploadedImage);
 var ctaScore      = acComputeCtaScore(cta);
-// ✅ Keep analysisData intact, only ensure the numeric score fields exist
+// Keep analysisData intact; only ensure the numeric score fields exist.
 analysisData = analysisData || {};
 analysisData.readability  = readabilityScore;
 analysisData.contrast     = contrastScore;
@@ -1181,7 +1181,7 @@ var grade = gradeObj.full;
 setTimeout(function() {
     if (typeof window.peRunFromAdCorrector === 'function') {
         try {
-            console.log('✅ Sending data to Persuasion Engine...');
+            console.log('Sending data to Persuasion Engine...');
             window.peRunFromAdCorrector({
                 readability: readabilityScore,
                 contrast: contrastScore,
@@ -1193,12 +1193,12 @@ setTimeout(function() {
                 grade: grade,
                 wordCount: totalWords
             });
-            console.log('✅ Data sent successfully to Persuasion Engine');
+            console.log('Data sent successfully to Persuasion Engine');
         } catch (e) {
-            console.error('❌ Persuasion Engine hook error:', e);
+            console.error('Persuasion Engine hook error:', e);
         }
     } else {
-        console.warn('⚠️ Persuasion Engine not found on page. Make sure it\'s loaded.');
+        console.warn('Persuasion Engine not found on page. Make sure it\'s loaded.');
     }
 }, 500);
 
@@ -1333,7 +1333,8 @@ function acRecomputeFromLastRun() {
   displayCompliance(window.acLastAnalysisData);
   displayInsights(window.acLastAnalysisData, window.acLastDetails);
   displayActionPlan(window.acLastAnalysisData, window.acLastDetails);
-    // ✅ Sync Persuasion Engine when user toggles mode (Brand vs Direct)
+  renderAnnotations();
+    // Sync Persuasion Engine when user toggles mode (Brand vs Direct)
   if (typeof window.peRunFromAdCorrector === 'function') {
     try {
       window.peRunFromAdCorrector({
@@ -1349,7 +1350,7 @@ function acRecomputeFromLastRun() {
   scoringMode: window.acScoringMode
 });
     } catch (e) {
-      console.error('❌ Persuasion Engine toggle sync failed:', e);
+      console.error('Persuasion Engine toggle sync failed:', e);
     }
   }
 
@@ -1588,7 +1589,7 @@ wordBudget = Math.max(5, wordBudget); // never below 5
 if (totalWords > wordBudget) {
   var over = totalWords - wordBudget;
 
-  // Small ramp. Not dramatic. Caps so it doesn’t become a death sentence.
+  // Small ramp. Caps so it does not become too punitive.
   densityPenalty = Math.min(12, over * 2);
 
   // If contrast isn't strong, density hurts more (real-world).
@@ -1663,8 +1664,8 @@ if (b > 255) b = 255;
     if (!totalSamples) return 80;
 
     // --- Noise filter ---
-    // Remove tiny “edge pixels” created by anti-aliasing & compression artifacts.
-    // Use a % threshold PLUS a minimum count so small accents don’t get wiped unfairly.
+    // Remove tiny edge pixels created by anti-aliasing and compression artifacts.
+    // Use a percentage threshold plus a minimum count so small accents do not get wiped unfairly.
     var noisePct = 0.002; // 0.2% of samples
     var noiseThreshold = Math.max(30, Math.round(totalSamples * noisePct));
 
@@ -1744,7 +1745,7 @@ analysisData.colorBlindRisk = colorBlindRisk;
     // -----------------------
     // SCORING MODEL (OOH realistic)
     // -----------------------
-    var score = 90; // start higher; clean billboards should live in 85–100 range
+    var score = 90; // start higher; clean billboards should live in 85-100 range
 
     // Palette complexity (filtered)
     if (uniqueColors <= 1) score -= 12;            // near-monochrome can reduce separation
@@ -1979,7 +1980,7 @@ function displayGrade(gradeObj, score, data, details) {
     } else {
       msg += ' Minor refinements only.';
     }
-    // ✅ Context-aware verification distance
+    // Context-aware verification distance
   }
   else if (score >= 80) {
     msg = 'Structurally Strong. One constraint limiting peak visibility.';
@@ -2042,10 +2043,10 @@ function displayGrade(gradeObj, score, data, details) {
     // Short, deterministic, free-tier guidance. No rabbit holes.
    if (label === 'Readability') {
       if (!hasHeadlineText && Number(value) === 0) {
-        return ['Add headline text to score this category', 'Respect format limits (e.g., Bulletin ≤ 7 words, Poster ≤ 10)'];
+        return ['Add headline text to score this category', 'Respect format limits (e.g., Bulletin <= 7 words, Poster <= 10)'];
       }
       if (value >= 85) return ['Keep the message this tight', 'Avoid adding extra copy that slows scan time'];
-      if (value >= 70) return ['Trim 1–3 words', 'Remove filler words and tighten the verb'];
+      if (value >= 70) return ['Trim 1-3 words', 'Remove filler words and tighten the verb'];
       return ['Reduce total word count', 'Ensure copy fits your specific format and speed constraints'];
     }
 
@@ -2088,7 +2089,7 @@ function displayGrade(gradeObj, score, data, details) {
     if (!hasCtaText && Number(value) === 0) {
       return ['Add CTA text to score this category', 'Include a URL, phone, or location cue'];
     }
-    if (value >= 85) return ['CTA is strong, keep it dominant', 'Don’t bury it in a corner or low-contrast area'];
+    if (value >= 85) return ['CTA is strong, keep it dominant', 'Do not bury it in a corner or low-contrast area'];
     if (value >= 70) return ['Make CTA bigger and higher contrast', 'Add a concrete anchor (URL/phone/location)'];
     return ['CTA needs dominance: bigger, bolder, higher contrast', 'Use an action verb + anchor (URL/phone/location)'];
   }
@@ -2116,7 +2117,7 @@ var metrics = [
   { label: 'Composition', value: data.composition, unit: '%' }
 ];
 
-// ✅ Brand Awareness excludes CTA from scoring view
+// Brand Awareness excludes CTA from scoring view
 if (mode !== 'brand') {
   metrics.push({ label: 'CTA', value: data.cta, unit: '%' });
 }
@@ -2502,6 +2503,7 @@ function displayInsights(data, details) {
         function renderCanvases() {
             try {
                 renderOriginal();
+                renderAnnotations();
                 renderSpeedView();
                 renderHeatmap();
       	  	renderGlare();
@@ -2519,6 +2521,195 @@ function displayInsights(data, details) {
             canvas.height = uploadedImage.height;
             
             ctx.drawImage(uploadedImage, 0, 0);
+        }
+
+        function acBuildImageAnnotations() {
+            var data = analysisData || {};
+            var details = window.acLastDetails || {};
+            var mode = (details && details.scoringMode) ? details.scoringMode : (window.acScoringMode || 'direct');
+            var items = [];
+
+            function add(key, title, detail, x, y, score) {
+                items.push({
+                    key: key,
+                    title: title,
+                    detail: detail,
+                    x: Math.max(0.08, Math.min(0.92, x)),
+                    y: Math.max(0.10, Math.min(0.90, y)),
+                    score: Number(score) || 100
+                });
+            }
+
+            var boxes = (analysisData && Array.isArray(analysisData.ocrBoxes)) ? analysisData.ocrBoxes : [];
+            var edgeBox = null;
+            var minEdge = 1;
+
+            for (var i = 0; i < boxes.length; i++) {
+                var b = boxes[i];
+                var edge = Math.min(b.x0, b.y0, 1 - b.x1, 1 - b.y1);
+                if (edge < minEdge) {
+                    minEdge = edge;
+                    edgeBox = b;
+                }
+            }
+
+            if (Number(data.contrast) < 75) {
+                add(
+                    'contrast',
+                    'Contrast risk',
+                    'Text/background separation may not survive distance, motion, or glare.',
+                    0.50,
+                    0.42,
+                    data.contrast
+                );
+            }
+
+            if (Number(data.readability) < 75) {
+                add(
+                    'readability',
+                    'Copy density risk',
+                    'The message may take too long to read at this format, speed, and distance.',
+                    0.48,
+                    0.28,
+                    data.readability
+                );
+            }
+
+            if (Number(data.composition) < 78) {
+                var compX = edgeBox ? ((edgeBox.x0 + edgeBox.x1) / 2) : 0.50;
+                var compY = edgeBox ? ((edgeBox.y0 + edgeBox.y1) / 2) : 0.56;
+                add(
+                    'composition',
+                    'Layout risk',
+                    edgeBox && minEdge < 0.07
+                        ? 'Detected text appears close to an edge, which can reduce visibility and production safety.'
+                        : 'The layout may have competing elements or weak spacing around the main message.',
+                    compX,
+                    compY,
+                    data.composition
+                );
+            }
+
+            if (Number(data.clarity) < 75) {
+                add(
+                    'clarity',
+                    'Speed-read risk',
+                    'Visual density may slow recognition when the viewer is moving.',
+                    0.62,
+                    0.54,
+                    data.clarity
+                );
+            }
+
+            if (Number(data.colors) < 75) {
+                add(
+                    'colors',
+                    'Color complexity risk',
+                    'The palette may be competing with legibility or recall.',
+                    0.36,
+                    0.58,
+                    data.colors
+                );
+            }
+
+            if (mode !== 'brand' && Number(data.cta) < 78) {
+                var ctaBox = details && details.cta ? acFindCtaBBoxFromOCR(String(details.cta).trim()) : null;
+                add(
+                    'cta',
+                    'CTA risk',
+                    details && details.cta
+                        ? 'The call-to-action may need more dominance, contrast, or a clearer anchor.'
+                        : 'No call-to-action was provided for Direct Response scoring.',
+                    ctaBox ? ((ctaBox.x0 + ctaBox.x1) / 2) : 0.72,
+                    ctaBox ? ((ctaBox.y0 + ctaBox.y1) / 2) : 0.76,
+                    data.cta
+                );
+            }
+
+            items.sort(function(a, b) {
+                return a.score - b.score;
+            });
+
+            var used = {};
+            var unique = [];
+            for (var j = 0; j < items.length; j++) {
+                if (used[items[j].key]) continue;
+                used[items[j].key] = true;
+                unique.push(items[j]);
+            }
+
+            return unique.slice(0, 5);
+        }
+
+        function renderAnnotations() {
+            var canvas = document.getElementById('ac-annotationCanvas');
+            var listEl = document.getElementById('ac-annotationList');
+            if (!canvas || !uploadedImage) return;
+
+            var ctx = canvas.getContext('2d');
+            canvas.width = uploadedImage.width;
+            canvas.height = uploadedImage.height;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(uploadedImage, 0, 0);
+
+            var annotations = acBuildImageAnnotations();
+            if (!annotations.length) {
+                if (listEl) {
+                    listEl.innerHTML = '<p>No priority issue markers detected. Use the metric cards for polish guidance.</p>';
+                }
+                return;
+            }
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            var radius = Math.max(18, Math.min(34, canvas.width * 0.027));
+            var html = '';
+
+            function esc(s) {
+                return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            for (var i = 0; i < annotations.length; i++) {
+                var item = annotations[i];
+                var x = item.x * canvas.width;
+                var y = item.y * canvas.height;
+
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+                ctx.shadowBlur = 14;
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = Math.max(3, radius * 0.12);
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold ' + Math.round(radius * 1.05) + 'px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(i + 1), x, y + 1);
+
+                html +=
+                    '<div class="ac-annotation-item">' +
+                        '<span class="ac-annotation-num">' + (i + 1) + '</span>' +
+                        '<div>' +
+                            '<p class="ac-annotation-title">' + esc(item.title) + '</p>' +
+                            '<p class="ac-annotation-detail">' + esc(item.detail) + '</p>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            if (listEl) listEl.innerHTML = html;
         }
 
        function renderSpeedView() {
@@ -2540,20 +2731,20 @@ function displayInsights(data, details) {
     var distance = isNaN(distanceRaw) ? 600 : distanceRaw; // feet
 
     // Clamp to a realistic range but allow 0
-    speed = Math.min(Math.max(speed, 0), 90);             // 0–90 mph
-    distance = Math.min(Math.max(distance, 0), 1500);     // 0–1500 ft
+    speed = Math.min(Math.max(speed, 0), 90);             // 0-90 mph
+    distance = Math.min(Math.max(distance, 0), 1500);     // 0-1500 ft
 
     // Update caption under the canvas
     var captionEl = document.getElementById('ac-speedCaption');
     if (captionEl) {
         if (speed <= 5) {
-            captionEl.textContent = 'Stopped / Crawling • ' + Math.round(distance) + ' ft';
+            captionEl.textContent = 'Stopped / Crawling - ' + Math.round(distance) + ' ft';
         } else {
-            captionEl.textContent = Math.round(speed) + ' mph • ' + Math.round(distance) + ' ft';
+            captionEl.textContent = Math.round(speed) + ' mph - ' + Math.round(distance) + ' ft';
         }
     }
 
-    // Special case: basically standing still and very close → no blur, no trail
+    // Special case: basically standing still and very close means no blur, no trail.
     if (speed <= 5) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1.0;
@@ -2562,7 +2753,7 @@ function displayInsights(data, details) {
         return;
     }
 
-    // Normalize to 0–1 ranges for motion effect
+    // Normalize to 0-1 ranges for motion effect
     var speedFactor = (speed - 30) / (90 - 30);     // 0 at ~30 mph, 1 at 90 mph
     if (speedFactor < 0) speedFactor = 0;
 
@@ -2570,7 +2761,7 @@ function displayInsights(data, details) {
     if (distanceFactor < 0) distanceFactor = 0;
 
     // Compute blur radius with a lighter base at low motion
-    var blurRadius = 0.5 + (speedFactor * 2.5) + (distanceFactor * 1.5); // ~0.5–6px
+    var blurRadius = 0.5 + (speedFactor * 2.5) + (distanceFactor * 1.5); // about 0.5-6px
     blurRadius = Math.min(Math.max(blurRadius, 0.5), 6);
 
     // Clear and render base blurred image
@@ -2579,11 +2770,11 @@ function displayInsights(data, details) {
     ctx.drawImage(uploadedImage, 0, 0);
 
     // Motion trail: number and offset scaled by speed
-    var trailCount = 2 + Math.round(speedFactor * 4); // 2–6 copies
-    var maxOffset = 40 + distanceFactor * 40;         // 40–80 px
+    var trailCount = 2 + Math.round(speedFactor * 4); // 2-6 copies
+    var maxOffset = 40 + distanceFactor * 40;         // 40-80 px
 
     ctx.filter = 'none';
-    ctx.globalAlpha = 0.15 + (speedFactor * 0.35);    // 0.15–0.50
+    ctx.globalAlpha = 0.15 + (speedFactor * 0.35);    // 0.15-0.50
 
     for (var i = 1; i <= trailCount; i++) {
         var offset = (maxOffset / trailCount) * i;
@@ -2666,12 +2857,12 @@ function displayInsights(data, details) {
             var baseScore = variance;
 
             // Layout bias: favor center / upper-center
-            var cxNorm = (col + 0.5) / analysisCols;   // 0–1
-            var cyNorm = (row + 0.5) / analysisRows;   // 0–1
+            var cxNorm = (col + 0.5) / analysisCols;   // 0-1
+            var cyNorm = (row + 0.5) / analysisRows;   // 0-1
             var dx = Math.abs(cxNorm - 0.5);
             var dy = Math.abs(cyNorm - 0.45);          // slight upper bias
             var dist = Math.sqrt(dx * dx + dy * dy);   // ~0 to ~0.7
-            var layoutBias = Math.max(0, 1 - (dist / 0.7)); // 0–1, highest near center band
+            var layoutBias = Math.max(0, 1 - (dist / 0.7)); // 0-1, highest near center band
 
             // Text bias: boost cells overlapping OCR word boxes
             var textBoost = 0;
@@ -2686,7 +2877,7 @@ function displayInsights(data, details) {
                     var overlapX = Math.min(cellX1, box.x1) - Math.max(cellX0, box.x0);
                     var overlapY = Math.min(cellY1, box.y1) - Math.max(cellY0, box.y0);
                     if (overlapX > 0 && overlapY > 0) {
-                        // Boost based on overlap; cap so it doesn’t explode
+                        // Boost based on overlap; cap so it does not explode.
                         textBoost = baseScore * 0.7;
                         break;
                     }
@@ -2865,6 +3056,7 @@ function renderGlare() {
                 
                 var tabNames = {
                     'original': 'Original design view',
+                    'annotations': 'Issue markers view',
                     'speed': 'Speed view simulation',
                     'heatmap': 'Attention heatmap view',
 		    'glare': 'Sun glare simulation'
@@ -3165,7 +3357,7 @@ var fixesHeading = isATier ? 'Top 3 Recommendations' : 'Top 3 Improvements';
                 
                 var fixesList = document.getElementById('ac-fixesList').getElementsByTagName('li');
                 for (var i = 0; i < Math.min(fixesList.length, 3); i++) {
-                    var fixText = fixesList[i].textContent.replace(/^[•·∙]\s*/, '');
+                    var fixText = fixesList[i].textContent.replace(/^[\*\-]\s*/, '');
                     ctx.fillText((i + 1) + '. ' + fixText, 80, yPos);
                     yPos += 35;
                 }
@@ -3181,8 +3373,8 @@ var fixesHeading = isATier ? 'Top 3 Recommendations' : 'Top 3 Improvements';
                 
                 var workingList = document.getElementById('ac-workingList').getElementsByTagName('li');
                 for (var i = 0; i < Math.min(workingList.length, 3); i++) {
-                    var workText = workingList[i].textContent.replace(/^[✓✔☑]\s*/, '');
-                    ctx.fillText('✓ ' + workText, 80, yPos);
+                    var workText = workingList[i].textContent.replace(/^[\*\-]\s*/, '');
+                    ctx.fillText('OK: ' + workText, 80, yPos);
                     yPos += 35;
                 }
                 
