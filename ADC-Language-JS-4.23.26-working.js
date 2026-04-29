@@ -146,6 +146,36 @@ ctx.drawImage(img, 0, 0, newWidth, newHeight);
             syncScenarioControlsFromInputs();
         }
 
+        function bindCompareButtons() {
+            window.acCompareSlots = window.acCompareSlots || { a: null, b: null };
+
+            var saveA = document.getElementById('ac-saveVersionA');
+            var saveB = document.getElementById('ac-saveVersionB');
+            var clear = document.getElementById('ac-clearCompare');
+
+            if (saveA) {
+                saveA.addEventListener('click', function() {
+                    acSaveCompareSlot('a');
+                });
+            }
+
+            if (saveB) {
+                saveB.addEventListener('click', function() {
+                    acSaveCompareSlot('b');
+                });
+            }
+
+            if (clear) {
+                clear.addEventListener('click', function() {
+                    window.acCompareSlots = { a: null, b: null };
+                    displayComparePanel();
+                    announceToScreenReader('Version comparison cleared.');
+                });
+            }
+
+            displayComparePanel();
+        }
+
         function init() {
             try {
                 var uploadSection = document.getElementById('ac-uploadSection');
@@ -305,6 +335,7 @@ ctx.drawImage(img, 0, 0, newWidth, newHeight);
                 bodyInput.addEventListener('input', updateWordCount);
 		updateWordCount();
                 bindScenarioSimulator();
+                bindCompareButtons();
 
                 console.log('Ad Corrector initialized successfully');
             } catch (error) {
@@ -1230,6 +1261,7 @@ displayCompliance(analysisData);
 displayInsights(analysisData, details);
 displayActionPlan(analysisData, details);
 renderCanvases();
+displayComparePanel();
 
 console.log('=== Analysis Complete ===');
             } catch (error) {
@@ -1334,6 +1366,7 @@ function acRecomputeFromLastRun() {
   displayInsights(window.acLastAnalysisData, window.acLastDetails);
   displayActionPlan(window.acLastAnalysisData, window.acLastDetails);
   renderAnnotations();
+  displayComparePanel();
     // Sync Persuasion Engine when user toggles mode (Brand vs Direct)
   if (typeof window.peRunFromAdCorrector === 'function') {
     try {
@@ -2359,6 +2392,226 @@ function displayActionPlan(data, details) {
     }
 
     listEl.innerHTML = html || '<li>Run analysis to generate prioritized fixes.</li>';
+}
+
+function acEscHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function acCanvasThumbnail(canvas, maxWidth) {
+    if (!canvas || !canvas.width || !canvas.height) return '';
+
+    maxWidth = maxWidth || 520;
+    var scale = Math.min(1, maxWidth / canvas.width);
+    var thumb = document.createElement('canvas');
+    thumb.width = Math.max(1, Math.round(canvas.width * scale));
+    thumb.height = Math.max(1, Math.round(canvas.height * scale));
+
+    var tctx = thumb.getContext('2d');
+    tctx.drawImage(canvas, 0, 0, thumb.width, thumb.height);
+
+    try {
+        return thumb.toDataURL('image/jpeg', 0.82);
+    } catch (e) {
+        return '';
+    }
+}
+
+function acBuildCompareSnapshot(slot) {
+    if (!window.acLastScores || !window.acLastDetails || !uploadedImage) {
+        return null;
+    }
+
+    var details = window.acLastDetails || {};
+    var scores = window.acLastScores || {};
+    var speedCanvas = document.getElementById('ac-speedCanvas');
+    var annotationCanvas = document.getElementById('ac-annotationCanvas');
+
+    return {
+        slot: slot,
+        label: slot === 'a' ? 'Version A' : 'Version B',
+        savedAt: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        grade: details.grade || 'N/A',
+        avgScore: Math.round(Number(details.avgScore) || 0),
+        mode: details.scoringMode || window.acScoringMode || 'direct',
+        wordCount: Number(details.wordCount) || 0,
+        headline: details.headline || '',
+        cta: details.cta || '',
+        scores: {
+            readability: Number(scores.readability) || 0,
+            contrast: Number(scores.contrast) || 0,
+            clarity: Number(scores.clarity) || 0,
+            colors: Number(scores.colors) || 0,
+            composition: Number(scores.composition) || 0,
+            cta: Number(scores.cta) || 0
+        },
+        previews: {
+            speed: acCanvasThumbnail(speedCanvas, 520),
+            annotations: acCanvasThumbnail(annotationCanvas, 520)
+        }
+    };
+}
+
+function acSaveCompareSlot(slot) {
+    window.acCompareSlots = window.acCompareSlots || { a: null, b: null };
+
+    if (!window.acLastScores || !window.acLastDetails) {
+        alert('Run an analysis before saving a version.');
+        return;
+    }
+
+    renderCanvases();
+
+    var snapshot = acBuildCompareSnapshot(slot);
+    if (!snapshot) {
+        alert('Could not save this version. Please run analysis again.');
+        return;
+    }
+
+    window.acCompareSlots[slot] = snapshot;
+    displayComparePanel();
+    announceToScreenReader(snapshot.label + ' saved for comparison.');
+}
+
+function acFormatDelta(delta) {
+    delta = Math.round(Number(delta) || 0);
+    if (delta > 0) return '+' + delta;
+    return String(delta);
+}
+
+function acDeltaClass(delta) {
+    delta = Number(delta) || 0;
+    if (delta > 0) return 'ac-delta-good';
+    if (delta < 0) return 'ac-delta-bad';
+    return '';
+}
+
+function acCompareMetricRows(a, b) {
+    var rows = [
+        { key: 'avgScore', label: 'Overall Score', a: a.avgScore, b: b.avgScore },
+        { key: 'readability', label: 'Readability', a: a.scores.readability, b: b.scores.readability },
+        { key: 'contrast', label: 'Contrast', a: a.scores.contrast, b: b.scores.contrast },
+        { key: 'clarity', label: 'Clarity', a: a.scores.clarity, b: b.scores.clarity },
+        { key: 'colors', label: 'Colors', a: a.scores.colors, b: b.scores.colors },
+        { key: 'composition', label: 'Composition', a: a.scores.composition, b: b.scores.composition }
+    ];
+
+    if (a.mode !== 'brand' || b.mode !== 'brand') {
+        rows.push({ key: 'cta', label: 'CTA', a: a.scores.cta, b: b.scores.cta });
+    }
+
+    var html = '';
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var delta = Math.round((Number(r.b) || 0) - (Number(r.a) || 0));
+        html +=
+            '<tr>' +
+                '<td>' + acEscHtml(r.label) + '</td>' +
+                '<td>' + acEscHtml(Math.round(r.a)) + '</td>' +
+                '<td>' + acEscHtml(Math.round(r.b)) + '</td>' +
+                '<td class="' + acDeltaClass(delta) + '">' + acEscHtml(acFormatDelta(delta)) + '</td>' +
+            '</tr>';
+    }
+
+    return html;
+}
+
+function acBestCompareMovement(a, b) {
+    var metrics = [
+        { label: 'Readability', delta: b.scores.readability - a.scores.readability },
+        { label: 'Contrast', delta: b.scores.contrast - a.scores.contrast },
+        { label: 'Clarity', delta: b.scores.clarity - a.scores.clarity },
+        { label: 'Colors', delta: b.scores.colors - a.scores.colors },
+        { label: 'Composition', delta: b.scores.composition - a.scores.composition }
+    ];
+
+    if (a.mode !== 'brand' || b.mode !== 'brand') {
+        metrics.push({ label: 'CTA', delta: b.scores.cta - a.scores.cta });
+    }
+
+    metrics.sort(function(x, y) {
+        return Math.abs(y.delta) - Math.abs(x.delta);
+    });
+
+    if (!metrics.length || Math.round(metrics[0].delta) === 0) return 'No major metric movement yet';
+
+    var top = metrics[0];
+    return top.label + ' ' + acFormatDelta(top.delta);
+}
+
+function acRenderCompareVersion(slot) {
+    if (!slot) {
+        return '<div class="ac-compare-empty"><p><strong>Empty slot.</strong> Save the current analysis into this version.</p></div>';
+    }
+
+    var preview = slot.previews && (slot.previews.speed || slot.previews.annotations);
+    var imgHtml = preview ? '<img src="' + acEscHtml(preview) + '" alt="' + acEscHtml(slot.label) + ' speed preview">' : '';
+    var modeLabel = slot.mode === 'brand' ? 'Brand Awareness' : 'Direct Response';
+
+    return '' +
+        '<div class="ac-compare-version">' +
+            imgHtml +
+            '<div class="ac-compare-version-body">' +
+                '<p class="ac-compare-version-title">' + acEscHtml(slot.label) + ' - ' + acEscHtml(slot.grade) + ' / ' + acEscHtml(slot.avgScore) + '</p>' +
+                '<p class="ac-compare-version-meta">' +
+                    acEscHtml(modeLabel) + ' | ' + acEscHtml(slot.wordCount) + ' words | Saved ' + acEscHtml(slot.savedAt) +
+                '</p>' +
+            '</div>' +
+        '</div>';
+}
+
+function displayComparePanel() {
+    var output = document.getElementById('ac-compareOutput');
+    if (!output) return;
+
+    window.acCompareSlots = window.acCompareSlots || { a: null, b: null };
+    var a = window.acCompareSlots.a;
+    var b = window.acCompareSlots.b;
+
+    if (!a && !b) {
+        output.innerHTML = '<p>Save Version A and Version B to compare score movement.</p>';
+        return;
+    }
+
+    if (!a || !b) {
+        var saved = a || b;
+        var missing = a ? 'B' : 'A';
+        output.innerHTML =
+            '<div class="ac-compare-versions">' +
+                acRenderCompareVersion(a) +
+                acRenderCompareVersion(b) +
+            '</div>' +
+            '<div class="ac-compare-empty"><p><strong>' + acEscHtml(saved.label) + ' saved.</strong> Analyze the other creative and save it as Version ' + acEscHtml(missing) + ' to complete the comparison.</p></div>';
+        return;
+    }
+
+    var overallDelta = b.avgScore - a.avgScore;
+    var winner = overallDelta > 0 ? 'Version B is stronger' : (overallDelta < 0 ? 'Version A is stronger' : 'Versions are tied');
+    var movement = acBestCompareMovement(a, b);
+
+    output.innerHTML =
+        '<div class="ac-compare-summary">' +
+            '<div class="ac-compare-stat">' +
+                '<span class="ac-compare-stat-label">Winner</span>' +
+                '<span class="ac-compare-stat-value">' + acEscHtml(winner) + '</span>' +
+            '</div>' +
+            '<div class="ac-compare-stat">' +
+                '<span class="ac-compare-stat-label">Overall Delta</span>' +
+                '<span class="ac-compare-stat-value ' + acDeltaClass(overallDelta) + '">' + acEscHtml(acFormatDelta(overallDelta)) + '</span>' +
+            '</div>' +
+            '<div class="ac-compare-stat">' +
+                '<span class="ac-compare-stat-label">Largest Movement</span>' +
+                '<span class="ac-compare-stat-value">' + acEscHtml(movement) + '</span>' +
+            '</div>' +
+        '</div>' +
+        '<div class="ac-compare-versions">' +
+            acRenderCompareVersion(a) +
+            acRenderCompareVersion(b) +
+        '</div>' +
+        '<table class="ac-compare-table">' +
+            '<thead><tr><th>Metric</th><th>A</th><th>B</th><th>Delta</th></tr></thead>' +
+            '<tbody>' + acCompareMetricRows(a, b) + '</tbody>' +
+        '</table>';
 }
 
 function displayInsights(data, details) {
