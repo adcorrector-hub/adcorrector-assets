@@ -2499,11 +2499,11 @@ function displayGrade(gradeObj, score, data, details) {
   // Tooltip descriptions for each metric
   var metricDescriptions = {
     'Readability': 'Compares the copy you entered with format-specific word limits.',
-    'Contrast': 'Estimates tonal separation in OCR-detected copy regions or across the artwork.',
+    'Contrast': 'Estimates tonal separation around text areas found in the artwork or across the overall design.',
     'Clarity': 'Combines image sharpness, copy load, viewing speed, distance, and contrast.',
     'Colors': 'Reviews palette complexity, dominant color use, and color-separation risk.',
     'Composition': 'Reviews visual density, breathing room, hierarchy, balance, and grouped spacing.',
-    'CTA': 'Reviews CTA wording and detected placement when OCR can identify it.'
+    'CTA': 'Reviews CTA wording and its detected position when the text can be identified confidently.'
   };
 
   function esc(s) {
@@ -2548,7 +2548,7 @@ function displayGrade(gradeObj, score, data, details) {
       return ['Add CTA text to score this category', 'Include a URL, phone, or location cue'];
     }
     if (!ctaBoxDetected) {
-      return ['Keep the CTA wording short and specific', 'Confirm its size, contrast, and placement manually because OCR did not isolate it'];
+      return ['Keep the CTA wording short and specific', 'Confirm its size, contrast, and placement manually because its position could not be identified confidently'];
     }
     if (value >= 85) return ['Preserve the short action and concrete anchor', 'Keep the detected CTA visually distinct from supporting copy'];
     if (value >= 70) return ['Tighten the CTA to one clear instruction', 'Increase separation between the CTA and nearby elements'];
@@ -2568,9 +2568,9 @@ function displayGrade(gradeObj, score, data, details) {
         ? data.contrastRatioRaw + ':1'
         : 'an unavailable ratio';
       if (data.contrastMethod === 'OCR-local estimate') {
-        return status + '. Estimated tonal separation is ' + ratioText + ' across OCR-detected copy regions. Confirm exact foreground and background colors before production.';
+        return status + '. Estimated tonal separation is ' + ratioText + ' around text areas found in the artwork. Confirm exact foreground and background colors before production.';
       }
-      return status + '. This is an artwork-wide tonal-range estimate because OCR could not isolate enough copy regions; it is not a compliance verification.';
+      return status + '. This estimate uses the overall artwork because individual text areas could not be measured confidently. It is not a compliance verification.';
     }
     if (label === 'Clarity') {
       return status + '. This combines image sharpness and copy load at ' + currentSpeed + ' mph and ' + currentDistance + ' ft.';
@@ -2587,8 +2587,8 @@ function displayGrade(gradeObj, score, data, details) {
     }
     if (label === 'CTA') {
       return ctaBoxDetected
-        ? status + '. The score combines CTA wording with its OCR-detected location; it does not predict conversion.'
-        : status + '. The score is based mainly on CTA wording because OCR could not confidently match its location; it does not predict conversion.';
+        ? status + '. The score combines CTA wording with its detected position in the artwork. It does not predict conversion.'
+        : status + '. The score is based mainly on CTA wording because its position could not be identified confidently. It does not predict conversion.';
     }
 
     return status + '. Review the guidance below for the most relevant next step.';
