@@ -1359,8 +1359,8 @@ window.acLastDetails = details;
 displayGrade(gradeObj, avgScore, analysisData, details);
 displayMetrics(analysisData);
 displayCompliance(analysisData);
-displayInsights(analysisData, details);
 displayActionPlan(analysisData, details);
+displayInsights(analysisData, details);
 renderCanvases();
 displayComparePanel();
 
@@ -1500,8 +1500,8 @@ function acRecomputeFromLastRun() {
   displayGrade(gradeObj, avgScore, window.acLastAnalysisData, window.acLastDetails);
   displayMetrics(window.acLastAnalysisData);
   displayCompliance(window.acLastAnalysisData);
-  displayInsights(window.acLastAnalysisData, window.acLastDetails);
   displayActionPlan(window.acLastAnalysisData, window.acLastDetails);
+  displayInsights(window.acLastAnalysisData, window.acLastDetails);
   renderAnnotations();
   displayComparePanel();
     // Sync Persuasion Engine when user toggles mode (Brand vs Direct)
@@ -2834,7 +2834,18 @@ function displayActionPlan(data, details) {
         return 'Refine this area and re-run analysis to confirm the score change.';
     }
 
-    var top = entries.slice(0, 3);
+    var top = entries.filter(function(entry) {
+        return entry.value < 85;
+    }).slice(0, 3);
+
+    if (!top.length && entries.length) {
+        top = entries.slice(0, 1);
+    }
+
+    window.acLastActionPlanKeys = top.map(function(entry) {
+        return entry.key;
+    });
+
     var html = '';
 
     for (var i = 0; i < top.length; i++) {
@@ -3073,13 +3084,20 @@ function displayInsights(data, details) {
     var workingList = document.getElementById('ac-workingList');
     var mode = (details && details.scoringMode) ? details.scoringMode : (window.acScoringMode || 'direct');
     var includeCTA = (mode !== 'brand');
+    var actionPlanKeys = Array.isArray(window.acLastActionPlanKeys)
+        ? window.acLastActionPlanKeys
+        : [];
+
+    function isPrimaryAction(key) {
+        return actionPlanKeys.indexOf(key) !== -1;
+    }
 
     var gradeStr = (details && details.grade) ? String(details.grade) : '';
     var isATier = gradeStr.charAt(0) === 'A';
 
     var fixesTitle = document.getElementById('ac-fixes-title');
     if (fixesTitle) {
-        fixesTitle.textContent = isATier ? 'Top 3 Recommendations' : 'Top 3 Improvements';
+        fixesTitle.textContent = isATier ? 'Additional Recommendations' : 'Additional Observations';
     }
 
     var ctaState = 'absent';
@@ -3090,24 +3108,6 @@ function displayInsights(data, details) {
         }
     }
 
-    var metricEntries = [
-        { key: 'readability', label: 'Readability', value: data.readability },
-        { key: 'contrast', label: 'Contrast', value: data.contrast },
-        { key: 'clarity', label: 'Clarity', value: data.clarity },
-        { key: 'colors', label: 'Colors', value: data.colors },
-        { key: 'composition', label: 'Composition', value: data.composition }
-    ];
-    if (includeCTA) metricEntries.push({ key: 'cta', label: 'CTA', value: data.cta });
-
-    var maxMetric = metricEntries[0];
-    var minMetric = metricEntries[0];
-    for (var i = 1; i < metricEntries.length; i++) {
-        var m = metricEntries[i];
-        if (m.value > maxMetric.value) maxMetric = m;
-        if (m.value < minMetric.value) minMetric = m;
-    }
-
-    var hasStrongBias = (maxMetric.value - minMetric.value) >= 20;
     var fixes = [];
     var simSpeed = parseInt(document.getElementById('ac-viewingSpeed').value, 10) || 65;
     var simDist = parseInt(document.getElementById('ac-viewingDistance').value, 10) || 600;
@@ -3121,89 +3121,114 @@ function displayInsights(data, details) {
     var actualWordCount = details.wordCount || 0;
     var wordsOverBudget = actualWordCount - wordBudget;
 
-    // 1. CRITICAL FAILURES
-    if (data.adaCompliance === 'Needs contrast review') {
+    // Additional observations exclude metrics already covered by Fix First Plan.
+    if (data.adaCompliance === 'Needs contrast review' && !isPrimaryAction('contrast')) {
         fixes.push('Contrast Review: Estimated copy-region contrast is ' + (data.contrastRatioRaw || 'low') + ':1. Increase tonal separation and verify the final production artwork.');
-    } else if (data.contrast < 60) {
+    } else if (data.contrast < 60 && !isPrimaryAction('contrast')) {
         fixes.push('Contrast Warning: Increase separation between text and background so copy holds up at distance.');
     }
-    if (data.colorBlindRisk && data.colorBlindRisk.indexOf('High') !== -1) {
-        fixes.push('Color Blind Risk: Color pairing lacks contrast. ~8% of male drivers will struggle to read this.');
+    if (data.colorBlindRisk &&
+        data.colorBlindRisk.indexOf('High') !== -1 &&
+        !isPrimaryAction('colors')) {
+        fixes.push('Color Separation: Do not rely on the detected red/green pairing alone to communicate important information.');
     }
 
-    // 2. WORD BUDGET
-    if (!hasDeclaredText) {
+    if (!hasDeclaredText && !isPrimaryAction('readability')) {
         fixes.push(includeCTA
             ? 'Add headline and CTA text in the fields to score Readability accurately.'
             : 'Add headline text in the field to score Readability accurately.');
-    } else if (wordsOverBudget > 0 && data.readability < 85) {
+    } else if (wordsOverBudget > 0 &&
+        data.readability < 85 &&
+        !isPrimaryAction('readability')) {
         fixes.push('Scan Capacity Reached: At ' + simSpeed + ' mph, your budget is ~' + wordBudget + ' words. You are ' + wordsOverBudget + ' words over capacity.');
     }
 
-    // 3. HIERARCHY & REDUNDANCY FILTER
-    var addressedKey = ''; 
-    if (hasStrongBias && fixes.length < 3) {
-        var maxLabel = maxMetric.key === 'cta' ? 'CTA' : maxMetric.label;
-        var minLabel = minMetric.key === 'cta' ? 'CTA' : minMetric.label;
-        fixes.push('Imbalanced Hierarchy: Your strong ' + maxLabel + ' is being held back by a weaker ' + minLabel + '. Rebalance visual weight to close this gap.');
-        addressedKey = minMetric.key; // Flag this metric so we don't repeat it below
+    if (fixes.length < 3 && data.clarity < 75 && !isPrimaryAction('clarity')) {
+        fixes.push('Clarity: Reduce fine detail near the main message and verify the source artwork is sharp.');
     }
-
-    // 4. MECHANICAL & REFINEMENTS (Diversity Check)
-    if (fixes.length < 3 && data.clarity < 75 && addressedKey !== 'clarity') {
-        fixes.push('Layout Clutter: Simplify the design. Remove secondary elements competing with the main message.');
-    }
-    if (fixes.length < 3 && data.composition < 75 && addressedKey !== 'composition') {
+    if (fixes.length < 3 && data.composition < 75 && !isPrimaryAction('composition')) {
         fixes.push('Composition: ' + acGetCompositionFixes(data, data.composition)[0] + '.');
     }
-    if (fixes.length < 3 && data.colors < 85 && addressedKey !== 'colors') {
-        fixes.push('Color Harmony: Refine the palette. Ensure secondary colors aren\'t competing with main message visibility.');
+    if (fixes.length < 3 && data.colors < 85 && !isPrimaryAction('colors')) {
+        fixes.push('Color Use: Reduce competing accents and preserve a clear dominant color field.');
     }
-    if (includeCTA && fixes.length < 3 && data.cta < 85 && addressedKey !== 'cta') {
-        fixes.push('CTA Dominance: The call-to-action is present, but could use slightly more contrast or scale to draw the eye instantly.');
+    if (includeCTA && fixes.length < 3 && data.cta < 85 && !isPrimaryAction('cta')) {
+        fixes.push('CTA: Keep the instruction short and confirm that its size, contrast, and placement are easy to find.');
     }
 
-    var fallbacks = ['Print proof at reduced scale to verify readability', 'Consider A/B testing with slight variations', 'Review design on mobile device at arm\'s length'];
-    for (var f = 0; f < fallbacks.length && fixes.length < 3; f++) {
-        fixes.push(fallbacks[f]);
+    var noAdditionalIssues = fixes.length === 0;
+    if (noAdditionalIssues) {
+        fixes.push('No additional issues were identified beyond the priority plan above.');
     }
 
     var fixesHtml = '';
-    var fixIcon = isATier ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2389ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>' 
+    var fixIcon = (isATier || noAdditionalIssues) ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2389ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>' 
                            : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
     for (var j = 0; j < Math.min(fixes.length, 3); j++) {
         fixesHtml += '<li>' + fixIcon + sanitizeText(fixes[j]) + '</li>';
     }
     fixesList.innerHTML = fixesHtml;
 
-    // 5. WHAT'S WORKING (Diversity Check)
-    var working = [];
-    if (includeCTA && ctaState === 'strong' && addressedKey !== 'cta') {
-        working.push('High-Velocity CTA: A strong action verb and visual anchor ensure the viewer knows what to do.');
-    } else if (includeCTA && ctaState === 'ok' && addressedKey !== 'cta') {
-        working.push('Identifiable CTA: The call to action is present and anchors the layout.');
-    }
-    if (hasDeclaredText && wordsOverBudget <= 0 && data.readability >= 85) {
-        working.push('Crisp & Concise: This layout is optimized for scan comprehension.');
-    } else if (data.readability >= 75 && addressedKey !== 'readability') {
-        working.push('Fast Comprehension: Copy is tight and well-structured for visual scanning.');
-    }
-    if (data.contrastMethod === 'OCR-local estimate' &&
-        data.adaCompliance === 'Estimated AA' &&
-        addressedKey !== 'contrast') {
-        working.push('Strong Tonal Separation: Estimated copy-region contrast is ' + data.contrastRatioRaw + ':1. Confirm against the final production colors.');
-    }
-    if (data.composition >= 80 && addressedKey !== 'composition') {
-        working.push('Composition: ' + acGetCompositionSummary(data, data.composition));
-    }
-    if (data.colors >= 80 && addressedKey !== 'colors' && (!data.colorBlindRisk || data.colorBlindRisk === 'Low')) {
-        working.push('Color Harmony: The palette supports fast brand recall without visual vibration.');
+    var strengthCandidates = [];
+
+    function addStrength(key, score, text) {
+        strengthCandidates.push({
+            key: key,
+            score: Number(score) || 0,
+            text: text
+        });
     }
 
-    var topWorking = working.slice(0, 3);
-    if (topWorking.length === 0) topWorking = ['Base creative processed successfully', 'Format dimensions detected', 'Ready for baseline revisions'];
+    if (includeCTA && ctaState === 'strong') {
+        addStrength('cta', data.cta, 'CTA: The action and destination are concise and easy to understand.');
+    } else if (includeCTA && ctaState === 'ok') {
+        addStrength('cta', data.cta, 'CTA: A clear next step is present in the entered copy.');
+    }
+
+    if (hasDeclaredText && wordsOverBudget <= 0 && data.readability >= 85) {
+        addStrength('readability', data.readability, 'Readability: The entered copy stays within the estimated word budget and supports faster scanning.');
+    } else if (data.readability >= 75) {
+        addStrength('readability', data.readability, 'Readability: The entered copy remains workable for the selected viewing conditions.');
+    }
+
+    if (data.contrastMethod === 'OCR-local estimate' &&
+        data.adaCompliance === 'Estimated AA') {
+        addStrength(
+            'contrast',
+            data.contrast,
+            'Contrast: Estimated tonal separation around detected text areas is ' + data.contrastRatioRaw + ':1. Confirm final production colors.'
+        );
+    }
+
+    if (data.clarity >= 80) {
+        addStrength('clarity', data.clarity, 'Clarity: Image sharpness and copy load support the selected speed and distance.');
+    }
+
+    if (data.composition >= 80) {
+        addStrength('composition', data.composition, 'Composition: ' + acGetCompositionSummary(data, data.composition));
+    }
+
+    if (data.colors >= 80 &&
+        (!data.colorBlindRisk || data.colorBlindRisk === 'Low')) {
+        addStrength('colors', data.colors, 'Color Use: The palette remains focused without a detected high-risk color pairing.');
+    }
+
+    strengthCandidates.sort(function(a, b) {
+        return b.score - a.score;
+    });
+
+    var topWorking = strengthCandidates.slice(0, 3).map(function(item) {
+        return item.text;
+    });
+
+    var noValidatedStrengths = topWorking.length === 0;
+    if (noValidatedStrengths) {
+        topWorking = ['No clear strength reached the reporting threshold yet. Address the priority plan and re-analyze.'];
+    }
     var workingHtml = '';
-    var checkIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2b8a3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="16 8 10 14 7 11"/></svg>';
+    var checkIcon = noValidatedStrengths
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2389ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2b8a3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:8px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="16 8 10 14 7 11"/></svg>';
     for (var k = 0; k < topWorking.length; k++) {
         workingHtml += '<li>' + checkIcon + sanitizeText(topWorking[k]) + '</li>';
     }
@@ -4075,7 +4100,7 @@ if (typeof value !== 'number') {
                 ctx.fillStyle = '#ff6b6b';
                 ctx.font = 'bold 28px Arial';
                 var isATier = String(grade || '').charAt(0) === 'A';
-var fixesHeading = isATier ? 'Top 3 Recommendations' : 'Top 3 Improvements';
+var fixesHeading = isATier ? 'Additional Recommendations' : 'Additional Observations';
                 ctx.fillText(fixesHeading, 60, yPos);
                 
                 ctx.fillStyle = '#333';
@@ -4092,7 +4117,7 @@ var fixesHeading = isATier ? 'Top 3 Recommendations' : 'Top 3 Improvements';
                 yPos += 30;
                 ctx.fillStyle = '#2b8a3e';
                 ctx.font = 'bold 28px Arial';
-                ctx.fillText('What\'s Working Well', 60, yPos);
+                ctx.fillText('What\'s Working', 60, yPos);
                 
                 ctx.fillStyle = '#333';
                 ctx.font = '22px Arial';
@@ -4124,7 +4149,7 @@ var fixesHeading = isATier ? 'Top 3 Recommendations' : 'Top 3 Improvements';
                 
 		var recommendations = [];
 
-		recommendations.push('Use the Top Improvements above first. Address changes in order of impact.');
+		recommendations.push('Start with the Fix First Plan, then review any additional observations.');
 		recommendations.push('After updates, re-analyze to confirm improvements and catch new issues.');
 		recommendations.push('Use the attention heatmap and speed view to validate hierarchy and visibility.');
 		                              
@@ -4237,6 +4262,7 @@ if (ocrStatus && ocrStatus.parentNode) {
                 window.acLastScores = null;
                 window.acLastAnalysisData = null;
                 window.acLastDetails = null;
+                window.acLastActionPlanKeys = [];
 
                 var actionPlanList = document.getElementById('ac-actionPlanList');
                 if (actionPlanList) actionPlanList.innerHTML = '<li>Run analysis to generate prioritized fixes.</li>';
