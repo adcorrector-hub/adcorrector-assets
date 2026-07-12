@@ -2555,6 +2555,13 @@ function displayGrade(gradeObj, score, data, details) {
     return ['Use a direct action verb with a URL, phone, or location anchor', 'Give the CTA enough scale and contrast to be found quickly'];
   }
 
+  function buildGuidanceHeading(value) {
+    value = Number(value) || 0;
+    if (value >= 95) return 'What to preserve';
+    if (value >= 85) return 'How to refine';
+    return 'How to improve';
+  }
+
   function buildSummary(label, value) {
     if (label === 'CTA' && !hasCtaText && Number(value) === 0) return 'No CTA text was provided, so this category cannot be scored.';
     if (label === 'Readability' && !hasHeadlineText && Number(value) === 0) return 'No headline text was provided, so Readability cannot be scored.';
@@ -2633,6 +2640,7 @@ if (mode !== 'brand') {
 
     var summary = buildSummary(metric.label, Number(metric.value));
     var fixes = buildFixes(metric.label, Number(metric.value));
+    var guidanceHeading = buildGuidanceHeading(Number(metric.value));
 
     var fixesHtml = '<ul style="margin:8px 0 0 16px;padding:0;">' +
       '<li style="margin:0 0 6px 0;">' + esc(fixes[0] || '') + '</li>' +
@@ -2665,7 +2673,7 @@ extraNoteHtml +
         '<div class="ac-metric-expand" aria-hidden="true">' +
           '<h4>What this measures</h4>' +
           '<p style="margin:0 0 10px 0;color:rgba(0,0,0,0.75);font-size:13px;line-height:1.35;">' + esc(summary) + '</p>' +
-          '<h4>How to improve</h4>' +
+          '<h4>' + esc(guidanceHeading) + '</h4>' +
           '<div style="color:rgba(0,0,0,0.75);font-size:13px;line-height:1.35;">' + fixesHtml + '</div>' +
         '</div>' +
       '</div>';
