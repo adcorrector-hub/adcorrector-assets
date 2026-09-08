@@ -2993,6 +2993,19 @@ function displayGrade(gradeObj, score, data, details) {
   if (descEl) descEl.textContent = msg;
 }
 
+function acGetCtaCopyGuidance(text) {
+  var copy = String(text || '').trim();
+  var words = copy ? copy.split(/\s+/).length : 0;
+  if (!words) return ['Enter the CTA as shown, or select Brand Awareness if no action is intended', 'Match the campaign goal to the purpose of the artwork'];
+  if (copy.replace(/[^a-z0-9]/gi, '').length < 3 && copy.toLowerCase() !== 'go') {
+    return ['Use a complete action or direction', 'Check that the next step makes sense with the headline'];
+  }
+  if (words <= 3) {
+    return ['Keep the short wording if it gives the intended next step', 'Check that it stands out from nearby copy'];
+  }
+  return ['Remove unnecessary words while keeping the direction clear', 'Keep any destination details needed to act'];
+}
+
         function displayMetrics(data) {
   var metricsGrid = document.getElementById('ac-metricsGrid');
   if (!metricsGrid) return;
@@ -3013,7 +3026,6 @@ function displayGrade(gradeObj, score, data, details) {
   var distanceEl = document.getElementById('ac-viewingDistance');
   var currentSpeed = speedEl ? (parseInt(speedEl.value, 10) || 65) : 65;
   var currentDistance = distanceEl ? (parseInt(distanceEl.value, 10) || 600) : 600;
-  var ctaBoxDetected = hasCtaText && acFindCtaBBoxFromOCR(String(ctaEl.value || '').trim());
 
   // SVG icons for each metric - thin line style
   var metricIcons = {
@@ -3045,7 +3057,7 @@ function displayGrade(gradeObj, score, data, details) {
       if (!hasEnteredCopy && Number(value) === 0) {
         return ['Enter the ad copy exactly as shown to complete the review', 'Include the headline and supporting copy in their matching fields'];
       }
-      if (value >= 85) return ['Preserve the current copy discipline', 'Avoid adding supporting words unless they change the takeaway'];
+      if (value >= 85) return ['Keep the message brief', 'Add words only if they help explain the main message'];
       if (value >= 70) return ['Remove unnecessary words from the artwork', 'Remove filler words and lead with the clearest benefit or verb'];
       return ['Shorten the copy in your artwork', 'Keep one clear message and remove words that do not support it'];
     }
@@ -3075,13 +3087,7 @@ function displayGrade(gradeObj, score, data, details) {
       return acGetCompositionFixes(data, value);
 }
 
-    // CTA
-    if (!hasCtaText && Number(value) === 0) {
-      return ['Enter the CTA as shown, or select Brand Awareness if no action is intended', 'Match the campaign goal to the purpose of the artwork'];
-    }
-    if (value >= 85) return ['Keep the action wording concise', 'Keep the CTA visually distinct from supporting copy'];
-    if (value >= 70) return ['Tighten the CTA to one clear instruction', 'Increase separation between the CTA and nearby elements'];
-    return ['Use one clear action and, where useful, one destination such as a website or location', 'Give the CTA enough scale and contrast to be found quickly'];
+    return acGetCtaCopyGuidance(ctaEl ? ctaEl.value : '');
   }
 
   function buildGuidanceHeading(value) {
@@ -3097,7 +3103,9 @@ function displayGrade(gradeObj, score, data, details) {
     var status = value >= 85 ? 'Strong' : (value >= 70 ? 'Workable' : 'Needs attention');
 
     if (label === 'Readability') {
-      return status + '. The score reflects ' + currentWordCount + ' entered words against format-specific guidance, including supporting copy and CTA length; it does not measure font size directly.';
+      return currentWordCount + ' entered ' + (currentWordCount === 1 ? 'word' : 'words') + '. ' +
+        (value >= 85 ? 'The copy is concise for this format.' : 'This score reviews copy length for this format.') +
+        ' Font size is not measured.';
     }
     if (label === 'Contrast') {
       var ratioText = data.contrastRatioRaw && data.contrastRatioRaw !== 'N/A'
@@ -3122,9 +3130,7 @@ function displayGrade(gradeObj, score, data, details) {
       return status + '. ' + acGetCompositionSummary(data, value);
     }
     if (label === 'CTA') {
-      return ctaBoxDetected
-        ? status + '. The score reviews CTA length and action wording. The CTA was also located in the artwork, but its visibility is not scored.'
-        : status + '. The score reviews CTA length and action wording. Check placement visually because the CTA could not be located confidently.';
+      return 'Checks length and recognized action words. A short direction can still work without an action verb.';
     }
 
     return status + '. Review the guidance below for the most relevant next step.';
@@ -3170,6 +3176,7 @@ if (mode !== 'brand') {
     var summary = buildSummary(metric.label, Number(metric.value));
     var fixes = buildFixes(metric.label, Number(metric.value));
     var guidanceHeading = buildGuidanceHeading(Number(metric.value));
+    if (metric.label === 'CTA') guidanceHeading = hasCtaText ? 'What to check' : 'Complete the review';
 
     var fixesHtml = '<ul style="margin:8px 0 0 16px;padding:0;">' +
       '<li style="margin:0 0 6px 0;">' + esc(fixes[0] || '') + '</li>' +
@@ -3364,9 +3371,7 @@ function displayActionPlan(data, details) {
             return acGetCompositionFixes(data, entry.value)[0];
         }
         if (entry.key === 'cta') {
-            if (!hasCtaText && entry.value === 0) return 'Enter the CTA as shown, or select Brand Awareness if no action is intended.';
-            if (entry.value < 70) return 'Keep the CTA concise and use one clear action.';
-            return 'Check that the CTA stands apart from nearby copy and remains easy to find.';
+            return acGetCtaCopyGuidance(details && details.cta)[0] + '.';
         }
         return 'Review this area for opportunities to make the main message clearer.';
     }
